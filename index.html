@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f5eff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="월 근무">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>월 근무</title>
+<style>
+/* Layout: title+month, calendar, 3 mode buttons, one-row summary, help at the bottom. Phone first (375px). */
+:root{
+  --bg:#f2f5f8; --surface:#fff; --fg:#13202c; --muted:#5b6a78; --line:#d8e0e8;
+  --accent:#1f5eff; --diff:#ff8a00; --today:#13202c; --on-accent:#fff; --warn:#c0392b; --sun:#c0392b; --tint-a:.30;
+  --font-ui:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  --font-num:ui-monospace,'SF Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e151c; --surface:#17212b; --fg:#e8eef3; --muted:#93a1ae; --line:#2a3846;
+  --accent:#7aa2ff; --diff:#ffa43a; --today:#e8eef3; --on-accent:#0b1220; --warn:#ff8d7e; --sun:#ff8d7e; --tint-a:.42; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e151c; --surface:#17212b; --fg:#e8eef3; --muted:#93a1ae; --line:#2a3846;
+  --accent:#7aa2ff; --diff:#ffa43a; --today:#e8eef3; --on-accent:#0b1220; --warn:#ff8d7e; --sun:#ff8d7e; --tint-a:.42; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body,button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}   /* 빠르게 연타해도 더블탭 확대로 먹히지 않게 */
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-ui)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.wheel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:520px;margin:0 auto;padding-block:8px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.ttl{flex:1;min-width:0;text-align:center}
+.ttl small{display:block;font:400 10px/1.1 var(--font-ui);color:var(--muted)}
+.ttl small.bad{color:var(--warn)}
+h1{font-size:18px;margin:0;line-height:1.25;white-space:nowrap}
+h1 small{display:block;font:400 10px var(--font-ui);color:var(--muted)}
+h1 small.bad{color:var(--warn)}
+h2{font-size:16px;margin:0}
+.mnav{display:flex;align-items:center;gap:8px}
+.mnav b{font-size:16px;min-width:92px;text-align:center}
+.nav{width:40px;height:40px;border:1px solid var(--line);background:var(--surface);border-radius:10px;font-size:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;margin-bottom:8px;min-width:0}
+.g7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.dow span{text-align:center;font-size:12px;color:var(--muted)}.dow span:first-child{color:var(--sun)}
+.cell{min-height:clamp(54px,calc((100svh - 300px)/6),70px);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;background:var(--surface);overflow:hidden}
+.cell.we{border-style:dashed}
+.cell.blank{border-color:transparent;background:none}
+.cell .main{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;font:500 17px/1.15 var(--font-num);padding:2px;min-width:0;color:var(--fg)}
+.cell .tm{font:500 19px/1.1 var(--font-num);white-space:nowrap;letter-spacing:-.02em}
+.cell .tm .dp{font:500 9px/1 var(--font-num);letter-spacing:0}
+.cell .tm .z{font-style:normal;color:transparent}
+.cell .ex{line-height:1;padding:0;height:18px;border:0;border-top:1px solid var(--line);background:hsl(215 10% 55%/.22);font-size:8px;color:var(--muted)}
+.cell .ex[aria-pressed="true"]{background:hsl(145 60% 32%);color:#fff;font-weight:700}
+.cell .nex{height:18px}
+.cell .nex.hol{display:flex;align-items:center;justify-content:center;background:hsl(0 75% 52%/.28);color:var(--sun);font:700 8px/1 var(--font-ui)}
+.cell small{font:400 10px var(--font-ui);color:var(--muted)}
+.cell .drow{align-self:flex-start;margin-left:4px;max-width:calc(100% - 4px);display:flex;align-items:center;gap:2px;overflow:hidden;white-space:nowrap}
+.cell .tag{font:400 8px/1 var(--font-ui);color:var(--muted)}
+.cell .d.sat,.cell .d.red{color:#fff;border-radius:9px;padding:0 4px;font-weight:700}
+.cell .d.sat{background:hsl(215 80% 50%)}
+.cell .d.red{background:hsl(0 70% 48%)}
+.cell .main.hrs{background:hsl(var(--h) 65% 50%/var(--tint-a))}
+.cell.past .main{color:var(--muted)}
+.cell .main.gry{background:hsl(0 0% 55%/.2)}
+.cell .main.gry.sat{background:hsl(215 14% 55%/.24)}
+.cell .main.gry.red{background:hsl(0 12% 55%/.24)}
+.cell .main.gry0{background:hsl(0 0% 55%/.08)}
+.cell .main.gry0.sat{background:hsl(215 14% 55%/.1)}
+.cell .main.gry0.red{background:hsl(0 12% 55%/.1)}
+.cell.past .d.sat{background:hsl(215 18% 52%)}
+.cell.past .d.red{background:hsl(0 16% 52%)}
+.cell .ex:disabled{cursor:default}
+/* 오늘: 칸 전체(날짜·시간·운동 포함) 테두리에 겹쳐 얹는 오버레이. 레이아웃은 그대로 */
+.cell{position:relative}
+.cell.diffcell::before{content:"";position:absolute;inset:0;border:2.5px solid var(--diff);border-radius:inherit;pointer-events:none;z-index:1}   /* 기록해 둔 출근 현황과 달라진 날: 진한 빨강 테두리 */
+.cell.todaycell.diffcell::after{inset:3px}
+.cell.todaycell::after{content:"";position:absolute;inset:0;border:2.5px solid var(--today);border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px var(--surface)}
+.cell .main.satbg{background:hsl(215 85% 55%/.07)}
+.cell .main.redbg{background:hsl(0 75% 52%/.07)}
+.cell.rest .main{color:var(--muted);font-size:15px}
+.modebar{display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:6px}
+.ghost{min-height:38px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:13px;padding:0 4px}
+.ghost[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
+.ghost:disabled{opacity:.45;cursor:default}
+.hint{margin:0;font-size:12px;color:var(--muted)}
+.sum{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 10px}
+.cap{margin:0;font-size:13px}.cap b{font:500 20px var(--font-num)}
+.stats{display:flex;gap:12px;margin:0}
+.stats dt{font-size:11px;color:var(--muted)}.stats dd{margin:0;font:500 16px var(--font-num)}
+.stats .bad dt,.stats .bad dd{color:var(--warn);font-weight:700}
+.sum.run .cap{flex-basis:100%}
+.sum.run .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 10px;width:100%}
+.stats .over dd{color:var(--warn);font-weight:700}
+.stats .done dd{background:linear-gradient(90deg,#00c853,#00bfa5,#64dd17);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+.calc.over{background:hsl(0 90% 56%/.14);border-color:hsl(0 80% 50%/.7);box-shadow:0 0 0 1px hsl(0 80% 50%/.35) inset}
+.calc.under{background:hsl(145 60% 45%/.16);border-color:hsl(145 55% 38%/.7);box-shadow:0 0 0 1px hsl(145 55% 38%/.35) inset}
+.stats .under dd{color:hsl(145 55% 40%);font-weight:700}
+.cell .ex[data-s="dine"]{background:hsl(28 92% 52%);color:#fff;font-weight:700}
+.leavemode .cell.we,.leavemode .cell.hol{filter:grayscale(1);opacity:.4}   /* 연차·교육 모드: 선택 안 되는 날은 회색으로 */
+.warnex .cell:not(.past) .ex[data-s="off"]{background:hsl(0 85% 55%/.3);color:var(--warn);font-weight:800;border-top-color:hsl(0 80% 50%/.7)}
+.cell .ex.done{background:linear-gradient(135deg,#00c853 0%,#00bfa5 50%,#64dd17 100%);color:#fff;font-weight:800;letter-spacing:.02em;text-shadow:0 0 3px rgba(0,80,40,.6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),0 0 6px rgba(0,200,120,.75);position:relative;overflow:hidden}
+@media (prefers-reduced-motion:no-preference){
+  .cell .ex.done::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.65),transparent);animation:shine 2.8s ease-in-out infinite}
+  @keyframes shine{0%,55%{left:-60%}100%{left:120%}}
+}
+.err{flex-basis:100%;margin:0;font-size:12px;color:var(--warn)}
+.err.ok{color:hsl(145 55% 38%);font-weight:700}
+.foot{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 8px}
+.foot .ghost{white-space:nowrap}
+.note{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.legend{margin:0;font-size:12px;color:var(--muted)}
+.sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.panel{position:relative;width:100%;max-width:520px;background:var(--surface);border-radius:16px 16px 0 0;padding:14px max(16px,env(safe-area-inset-left,0px)) calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.panel h2{text-align:center}
+.wrap{position:relative;height:200px}
+.wheels{display:flex;height:200px}
+.wheel{flex:1;min-width:0;height:200px;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none;text-align:center}
+.wheel::-webkit-scrollbar{display:none}
+.wheel .pad{height:80px}
+.wheel .it{height:40px;scroll-snap-align:center;font:500 22px/40px var(--font-num);color:var(--muted)}
+.wheel .it.on{color:var(--fg);font-weight:700}
+.band{position:absolute;left:0;right:0;top:80px;height:40px;border-radius:10px;background:hsl(215 85% 55%/.15);border:1px solid hsl(215 85% 55%/.4);pointer-events:none}
+.unit{position:absolute;top:80px;height:40px;line-height:40px;font-size:14px;color:var(--muted);pointer-events:none}
+.sheetbtns{display:grid;gap:8px}
+.go{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
+/* ===== 컴팩트: 달력·요약·버튼이 한 화면에 들어오게 ===== */
+.app{padding-block:4px 12px}
+header{margin-bottom:4px}
+.nav{width:34px;height:34px;font-size:18px}
+h1{font-size:17px}
+.card{padding:6px;gap:4px;margin-bottom:6px}
+.g7{gap:2px}
+.dow span{font-size:11px;line-height:1.3}
+.cell{min-height:0;border-radius:6px}
+.cell .main{padding:0 1px 1px}
+.cell .tm{font:500 17px/1.05 var(--font-num)}
+.cell .tm .dp{font:500 8px/1 var(--font-num)}
+.cell .drow{margin-left:2px}
+.cell small{font-size:9px}
+.cell .d.sat,.cell .d.red{padding:0 3px;border-radius:7px}
+.cell .ex,.cell .nex{height:14px}
+.cell .ex{font-size:7px}
+.cell.rest .main{font-size:13px}
+.modebar{gap:4px}
+.ghost{min-height:32px;font-size:12px}
+.sum{padding:5px 8px}
+.cap b{font-size:18px}
+.stats dd{font-size:15px}
+.foot{gap:4px;margin-bottom:6px}
+@media (prefers-reduced-motion:no-preference){.cell{transition:transform .08s}.cell:active{transform:scale(.96)}}
+/* ===== 화면 크기에 맞춰 키우기: 칸 높이는 (화면 높이 − 위·아래 영역) ÷ 줄 수, 폰은 최대 76px, 태블릿은 더 크게 ===== */
+:root{--chrome:200px;--cellmax:76px}
+.app{--ch:clamp(46px,calc((100svh - var(--chrome))/var(--rows,5)),var(--cellmax))}
+.cell{min-height:var(--ch);container-type:inline-size;--nf:min(calc(var(--ch)*.3 + 3px),50cqw)}
+.cell .tm{font-size:var(--nf)}
+.cell .tm .dp{font-size:calc(var(--nf)*.45)}
+.cell small{font-size:max(9px,calc(var(--ch)*.13))}
+.cell .ex,.cell .nex{height:max(14px,calc(var(--ch)*.26))}
+.cell .ex{font-size:max(7px,calc(var(--ch)*.12))}
+.cell.rest .main{font-size:max(13px,calc(var(--ch)*.22))}
+@media (min-width:600px){
+  :root{--chrome:330px;--cellmax:130px}
+  .app{max-width:760px}
+  h1{font-size:26px}
+  .nav{width:50px;height:50px;font-size:26px}
+  .card{padding:12px;gap:8px}
+  .g7{gap:5px}
+  .dow span{font-size:15px}
+  .cell{border-radius:10px}
+  .ghost{min-height:48px;font-size:17px}
+  .sum{padding:10px 14px}
+  .cap{font-size:17px}.cap b{font-size:28px}
+  .stats dt{font-size:14px}.stats dd{font-size:24px}
+  .err{font-size:15px}
+  .note,.legend{font-size:15px}
+  .ttl small{font-size:12px}
+}
+/* ===== 계산 모드 ===== */
+.cview{display:flex;flex-direction:column;gap:8px}
+.cview .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cfield{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:8px;background:var(--bg);min-width:0}
+.cfield label{font-size:12px;color:var(--muted)}
+.ctime{font:600 34px/1.1 var(--font-num);border:0;background:none;padding:2px 0;text-align:center;color:var(--fg)}
+.cfield .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.cfield .steps button{min-height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;padding:0}
+.cex6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.cex6 button{min-height:38px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:500 14px var(--font-num);padding:0}
+.cex6 button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
+.cres{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px;background:var(--bg)}
+.cview .cres{flex:1;justify-content:center}
+.cres .big{font:700 44px/1.1 var(--font-num);text-align:center}
+.cres .big small{display:block;font:400 13px var(--font-ui);color:var(--muted)}
+.cres .ln{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted)}
+.cres .ln b{font:500 16px var(--font-num);color:var(--fg)}
+@media (min-width:600px){.ctime{font-size:56px}.cres .big{font-size:72px}.cfield .steps button{min-height:48px;font-size:16px}.cex6 button{min-height:52px;font-size:18px}.cres .ln{font-size:17px}.cres .ln b{font-size:22px}.cfield label{font-size:15px}}
+@keyframes dedflash{0%,100%{background:var(--surface)}50%{background:hsl(0 90% 56%/.38)}}
+.calc.dflash{animation:dedflash .5s ease-in-out 3}
+@keyframes dedflashg{0%,100%{background:var(--surface)}50%{background:hsl(145 65% 42%/.38)}}
+.calc.dflash-g{animation:dedflashg .5s ease-in-out 3}
+@media (prefers-reduced-motion:reduce){.calc.dflash,.calc.dflash-g{animation:none}}
+.todaybtn{margin-left:8px;min-height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font:500 12px/1 var(--font-ui);color:var(--accent);vertical-align:middle;white-space:nowrap}
+.todaybtn:disabled{opacity:.4;color:var(--muted);cursor:default}
+.todaybtn.limbtn{margin-left:4px;font-family:var(--font-num);font-weight:700}
+.limbtn.l64{background:var(--diff);border-color:var(--diff);color:#fff}
+.limbtn.arm{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.limbtn:disabled{opacity:1;cursor:default}
+@media (min-width:600px){.todaybtn{min-height:34px;font-size:15px;padding:0 14px}}
+.cell .drow{width:calc(100% - 4px)}
+.cell .fd{margin-left:auto;color:var(--accent);font-weight:500}   /* 패밀리데이: 날짜 숫자와 같은 크기, 오른쪽 정렬 */
+.calbar{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin:0 0 8px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:13px}
+.calbar b{font-weight:700;white-space:nowrap}
+.calbar small{font-size:11px;color:var(--muted);line-height:1.2;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calbar.need{border-color:var(--diff);background:hsl(0 80% 55%/.10)}
+.calbar.need small{color:var(--diff)}
+.calbar:disabled{cursor:default}
+.calbar:disabled b,.calbar:disabled small{opacity:.6}
+@media (min-width:600px){.calbar{padding:10px 16px;font-size:17px}.calbar small{font-size:14px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <button class="nav" id="pm" type="button" aria-label="이전 달">‹</button>
+    <div class="ttl"><h1><span id="mt"></span><button class="todaybtn" id="goNow" type="button">오늘</button><button class="todaybtn limbtn" id="limBtn" type="button">52h</button></h1><small id="sync" hidden></small></div>
+    <button class="nav" id="nm" type="button" aria-label="다음 달">›</button>
+  </header>
+  <section class="card calc" aria-label="달력">
+    <div class="g7 dow" id="dow" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+    <div class="g7" id="cal"></div>
+    <div class="cview" id="calcView" hidden>
+      <div class="row2">
+        <div class="cfield"><label>출근</label><button class="ctime" id="cInT" type="button" aria-label="출근 시각"></button>
+          <div class="steps"><button type="button" data-c="in:now">지금</button><button type="button" data-c="in:-10">−10분</button><button type="button" data-c="in:+10">+10분</button></div></div>
+        <div class="cfield"><label>퇴근 예정</label><button class="ctime" id="cOutT" type="button" aria-label="퇴근 예정 시각"></button>
+          <div class="steps"><button type="button" data-c="out:now">지금</button><button type="button" data-c="out:-10">−10분</button><button type="button" data-c="out:+10">+10분</button></div></div>
+      </div>
+      <div class="cfield"><label>제외시간 (분)</label><div class="cex6" id="cEx"></div></div>
+      <div class="cres" aria-live="polite">
+        <div class="big" id="cBig"></div>
+      </div>
+    </div>
+    <div class="modebar">
+      <button class="ghost" id="leaveMode" type="button" aria-pressed="false">연차·교육</button>
+      <button class="ghost" id="handMode" type="button" aria-pressed="false">수기입력</button>
+      <button class="ghost" id="dirBtn" type="button" aria-pressed="false">▲ 올림</button>
+      <button class="ghost" id="runMode" type="button" aria-pressed="false">계획 모드</button>
+    </div>
+    <p class="hint" id="modeHint" hidden></p>
+  </section>
+  <section class="card sum" aria-label="요약">
+    <p class="cap" id="cap"></p>
+    <dl class="stats" id="stats"></dl>
+    <p class="err" id="err" role="alert" hidden></p>
+  </section>
+  <div class="foot">
+    <button class="ghost" id="helpBtn" type="button" aria-expanded="false" aria-controls="helpBox">설명 보기</button>
+    <button class="ghost" id="resetEdits" type="button">수정 지우기</button>
+    <button class="ghost" id="resetMonth" type="button">월 초기화</button>
+    <button class="ghost" id="themeBtn" type="button">라이트</button>
+  </div>
+  <section class="card" id="helpBox" hidden>
+    <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
+    <b>계획</b><br>
+    · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
+    · ▲ 올림 / ▼ 내림 버튼으로 누르는 방향(숫자, 운동 칸)을 바꿔요.<br>
+    · 운동 칸(평일, 휴일이 아닌 토요일): 운동함 → 회식 → 운동안함(토요일은 회식 없이 운동함 ↔ 운동안함). 회식은 8시간 고정, 운동 횟수에 안 세요. 운동일은 최대 12시간.<br>
+    · 연차·교육: 켜고 평일을 누르면 연차 → 교육(8시간) → 해제. 주말·공휴일은 없어요.<br>
+    · 수기입력: 돌림판으로 직접 고르고, 휴무·쉼·자동으로 되돌릴 때도 써요.<br>
+    · 자동 시간은 기본 11시간(운동일 10). 넘치면 말일부터 줄이고, 모자라면 오늘 이후 가까운 날부터 13시간(운동일 12)으로 올려요.<br>
+    · 운동은 기본 7일을 넣어 주고, 7일 미만이면 빨갛게 경고해요.<br>
+    · 달력 배경: 최대 시간 미만 초록, 초과 빨강, 딱 맞으면 흰색.<br>
+    · 주 52h / 64h: 제목 옆 버튼을 누르면 확인 후(한 번 더) 바뀌어요. 52시간제 최대 208·215·222·230, 64시간제 256·265·274·283(28·29·30·31일, 29일은 임시값). 모든 기기에 같이 적용돼요. 바꿔도 칸의 값은 그대로이고, 최대 옆 맞추기 버튼을 누르면 새 최대에 맞춰 자동 계산해요.<br>
+    · 패데: 21일이 속한 주 금요일(공휴일과 겹치면 전주 금요일).<br><br>
+    <b>실행</b><br>
+    · 지난 날은 계획대로 채워져 있어요. 다르면 눌러서 시·분을 고쳐요.<br>
+    · 요약: 예상 합계, 최대와의 차이(+는 초과), 운동 횟수.<br><br>
+    <b>계산</b><br>
+    · 출근·퇴근 시각을 누르면 돌림판이 열려요. 체류시간 4:30 이상 30분, 9:00 이상 1시간이 자동으로 빠지고, 제외시간은 그 위에 추가로 빼요.<br>
+    · 차감이 커지면 빨강, 작아지면 초록으로 깜빡여요.<br><br>
+    <b>표시</b> 시간 색은 짧으면 초록·길면 빨강, 토요일 파랑, 일요일·공휴일 빨강, 오늘은 검정 칸 테두리, 오렌지 테두리는 기록해 둔 출근 현황(오늘부터 3개월)과 지금 근무표가 달라진 날. 실제 기록은 공유 저장소에 저장돼요.<br><br>
+    <b>아래 버튼</b><br>
+    · 설명: 이 설명을 열고 닫아요.<br>
+    · 캘린더 업데이트(맨 아래): 맥북 캘린더 `출근`에 반영한 마지막 시각을 보여줘요(오늘 포함 이번 달부터 3개월). 근무표와 같으면 버튼이 꺼지고, 달라지면 오렌지색이 되며 달라진 날은 달력에 오렌지 테두리가 떠요.<br>
+    · 수정 지우기: 오늘부터 내가 고친 시간·운동만 지워 자동 계획으로 되돌려요. 실제 기록은 그대로예요.<br>
+    · 월 초기화: 오늘부터의 계획 수정과 기록을 지워요. 오늘 이전 기록은 초기화·52/64 전환에도 그대로 남아요.<br>
+    · 지우는 버튼은 두 번 눌러야 실행돼요(처음에 &lsquo;한 번 더!&rsquo;).<br>
+    · 자동·라이트·다크: 누를 때마다 화면 색이 바뀔요. 자동은 기기 설정을 따라가고, 이 기기에만 저장돼요.</p>
+    <br><small id="buildTag" style="color:var(--muted)">화면 버전 11/18 휴일 토요일</small>
+  </section>
+  <button class="calbar" id="calBtn" type="button" hidden><b>캘린더 업데이트</b><small id="calStat"></small></button>
+  <div class="sheet" id="sheet" hidden>
+    <div class="backdrop" id="sheetBg"></div>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <h2 id="sheetTitle"></h2>
+      <div class="wrap"><div class="wheels" id="wheels"></div><div class="band" aria-hidden="true"></div></div>
+      <div class="sheetbtns" id="sheetBtns"><button class="ghost" id="sheetClear" type="button" hidden>기록 지우기</button><button class="ghost" id="sheetCancel" type="button">취소</button><button class="ghost go" id="sheetOk" type="button">확인</button></div>
+    </div>
+  </div>
+</main>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var CAPS={28:208,29:215,30:222,31:230}, CAPS64={28:256,29:265,30:274,31:283}, LIM=52,   // 주 52시간제 / 64시간제 월 최대(64의 29일은 임시값)
+       BASE=[8,10,11,13], EX_NEED=7, EX_MAX=12;   // 운동 있는 날은 최대 12시간   // 29일(윤년)은 임시값
+  var WEEKDAY_CYCLE=['7','8','9','10','11','12','13'], HOLIDAY_CYCLE=WEEKDAY_CYCLE, WEEKEND_CYCLE=['','8','10','11','6'];   // 평일·공휴일 터치는 숫자만 돌림, 주말은 마지막 다음에 쉼으로 돌아옴. 휴무·휴일·자동은 수기입력 돌림판
+  function capOf(n){return (LIM===64?CAPS64:CAPS)[n]}
+  var now=new Date(), vy=now.getFullYear(), vm=now.getMonth();
+  var HISTORY=[];   // 예비: 공유 저장소에 기록이 없는 과거 근무일(YYYY-MM-DD)
+  var HOL={"2026-01-01": "신정연휴", "2026-02-16": "설날 전날", "2026-02-17": "설날", "2026-02-18": "설날 다음날", "2026-03-01": "삼일절", "2026-03-02": "삼일절 대체 휴일", "2026-05-01": "노동절", "2026-05-05": "어린이날", "2026-05-24": "부처님오신날", "2026-05-25": "부처님오신날 대체 휴일", "2026-06-03": "지방선거일", "2026-06-06": "현충일", "2026-07-17": "제헌절", "2026-08-15": "광복절", "2026-08-17": "광복절 대체 휴일", "2026-09-24": "추석 전날", "2026-09-25": "추석", "2026-09-26": "추석 다음날", "2026-10-03": "개천절", "2026-10-05": "개천절 대체 휴일", "2026-10-09": "한글날", "2026-12-25": "기독탄신일", "2027-01-01": "신정연휴", "2027-02-06": "설날 전날", "2027-02-07": "설날", "2027-02-08": "설날 다음날", "2027-02-09": "설날 대체 휴일", "2027-03-01": "삼일절", "2027-05-01": "노동절", "2027-05-03": "노동절 대체 휴일", "2027-05-05": "어린이날", "2027-05-13": "부처님오신날", "2027-06-06": "현충일", "2027-07-17": "제헌절", "2027-07-19": "제헌절 대체 휴일", "2027-08-15": "광복절", "2027-08-16": "광복절 대체 휴일", "2027-09-14": "추석 전날", "2027-09-15": "추석", "2027-09-16": "추석 다음날", "2027-10-03": "개천절", "2027-10-04": "개천절 대체 휴일", "2027-10-09": "한글날", "2027-10-11": "한글날 대체 휴일", "2027-12-25": "기독탄신일", "2027-12-27": "기독탄신일 대체 휴일", "2028-01-01": "신정연휴", "2028-01-26": "설날 전날", "2028-01-27": "설날", "2028-01-28": "설날 다음날", "2028-03-01": "삼일절", "2028-04-12": "국회의원 선거일", "2028-05-01": "노동절", "2028-05-02": "부처님오신날", "2028-05-05": "어린이날", "2028-06-06": "현충일", "2028-07-17": "제헌절", "2028-08-15": "광복절", "2028-10-02": "추석 전날", "2028-10-03": "개천절 · 추석", "2028-10-04": "추석 다음날", "2028-10-05": "추석 대체 휴일", "2028-10-09": "한글날", "2028-12-25": "기독탄신일"};  // 대한민국 공휴일(holidays-kr.json)
+  var leaveMode=false, handMode=false, runMode=false, calcMode=false, dirDown=false, roPerm=false;   // roPerm: 수정 권한이 없는 사람
+  function ro(){return roPerm||location.hash==='#view'}   // 주소 끝에 #view를 붙여도 보기 전용(내 계정으로 열어도 실수로 수정되지 않게)
+  var calSync=null;   // 캘린더에 반영한 현황(sync/calendar)
+  var snapWork=null;   // 기록해 둔 출근 현황 {from,to,set:{날짜:true}} — 저장소 sync/workdays 문서
+  // 지금 근무표 기준 출근일 판정(캘린더 반영과 같은 규칙): 숫자·교육·실제 기록이 있는 날, 또는 휴무·연차·공휴일이 아닌 평일
+  function isWorkDay(id){
+    var p=id.split('-'),mo=all[p[0]+'-'+p[1]]||{},dd=(mo.d||{})[id]||'',aa=(mo.a||{})[id]||0,wd=new Date(+p[0],+p[1]-1,+p[2]).getDay();
+    if(aa>0||dd==='edu'||/^[0-9]+$/.test(dd))return true;
+    if(dd==='off'||dd==='leave')return false;
+    return wd>=1&&wd<=5&&!HOL[id];
+  }
+  var lastCalH=0;   // 달력 영역 높이: 계산 모드 화면 높이를 맞춰 모드 버튼 위치가 안 바뀌게
+  var CK='calc-state-v1', cs={in:480,out:1080,ex:0,date:'',plan:null}, lastDed=null;   // 계산 모드: 출근·퇴근(분), 제외시간(분), 기본값을 만든 날짜, 그날 계획 시간
+  try{var rawc=localStorage.getItem(CK);if(rawc)cs=Object.assign(cs,JSON.parse(rawc))}catch(e){}
+  var all={}, db=null, chain=Promise.resolve(), LKEY='plan-inputs-v4';
+
+  function pad(n){return n<10?'0'+n:''+n}
+  function idOf(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function key(){return vy+'-'+pad(vm+1)}
+  function cur(){
+    var k=key();if(!all[k])all[k]={};
+    var c=all[k];['d','x','a','ax','lk'].forEach(function(f){if(!c[f])c[f]={}});return c;
+  }
+  function setSync(t,bad){var s=$('sync');s.textContent=t;s.className=bad?'bad':'';s.hidden=!t||t==='저장됨'}
+  var dirty={},writing=false;
+  function canon(o){return JSON.stringify(o,function(k,v){if(v&&typeof v==='object'&&!Array.isArray(v)){var r={};Object.keys(v).sort().forEach(function(x){r[x]=v[x]});return r}return v})}
+  function save(){
+    if(!db){try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}return}
+    dirty[key()]=true;flush();
+  }
+  function flush(){
+    if(writing)return;
+    var ks=Object.keys(dirty).filter(function(k){return dirty[k]});
+    if(!ks.length)return;
+    var k=ks[0];dirty[k]=false;writing=true;
+    if(!all[k])all[k]={};
+    all[k].updatedAt=new Date().toISOString();
+    var doc=JSON.parse(JSON.stringify(all[k]));
+    db.collection('months').doc(k).set(doc).catch(function(e){if(e&&e.code==='invalid_argument'){roPerm=true;render()}else setSync('저장하지 못했어요. 연결을 확인해 주세요',true)}).then(function(){writing=false;flush()});
+  }
+  function hue(h){var c=Math.min(Math.max(h,5),13);return Math.round(150-150*(c-5)/8)}
+  function fmtHM(m){m=Math.round(m);return Math.floor(m/60)+':'+pad(m%60)}
+  // 모든 시간을 'NN.D' 고정 서식으로: 십의 자리가 0이면 투명 처리해 소수점 위치가 움직이지 않게 함
+  function splitHtml(m){
+    var v=Math.round(m/6)/10,t=v.toFixed(1),p=t.split('.'),ip=p[0];
+    return '<span class="tm">'+(ip.length<2?'<i class="z">0</i>':'')+ip+'<span class="dp">.'+p[1]+'</span></span>';
+  }
+  function fmtD(m){var v=Math.round(m/6)/10;return v%1===0?String(v):v.toFixed(1)}   // 분 → 소수 시간(10:30 → 10.5)
+  function monthDays(){var n=new Date(vy,vm+1,0).getDate(),a=[];for(var i=1;i<=n;i++){var d=new Date(vy,vm,i);a.push({id:idOf(d),n:i,dow:d.getDay(),we:d.getDay()===0||d.getDay()===6})}return a}
+  function exOk(d){return !d.we||(d.dow===6&&!HOL[d.id])}   // 운동 칸이 열리는 날: 평일(공휴일 포함)과 휴일이 아닌 토요일
+  function isHrs(c){return c&&c!=='off'&&c!=='leave'}
+  function baseOf(c){return c==='edu'?8:parseInt(c,10)}
+
+  // 1일 직전까지 이어진 근무일 수: 지난달 실제 기록(a>0)에서 자동 계산
+  function autoPrior(){
+    var n=0;
+    for(var i=1;i<=6;i++){
+      var dt=new Date(vy,vm,1-i),id=idOf(dt),rec=all[dt.getFullYear()+'-'+pad(dt.getMonth()+1)];
+      var worked=(rec&&rec.a&&rec.a[id]>0)||HISTORY.indexOf(id)>=0;
+      if(worked)n++;else break;
+    }
+    return n;
+  }
+
+  // manual: 날짜→코드, exf: 날짜→true/false(운동 직접 켬/끔). 직접 고른 시간은 고정, 나머지 자동 평일을 앞쪽부터 채워 cap에 맞춘다.
+  function buildPlan(days,manual,exf,priorRun,cap,frozen){
+    var run=priorRun,i,worked={},mh={},err=null;
+    days.forEach(function(d){
+      var m=manual[d.id];
+      worked[d.id]=d.we?!!isHrs(m):(isHrs(m)?true:(m==='off'||m==='leave'||(!m&&HOL[d.id]))?false:true);
+      if(isHrs(m)){var e=exOk(d)&&m!=='edu'&&exf[d.id]===true;mh[d.id]={base:baseOf(m),ex:e,h:(e&&baseOf(m)>EX_MAX?EX_MAX:baseOf(m)),edu:m==='edu'}}   // 직접 고른 날은 운동과 상관없이 고른 시간 그대로
+    });
+    for(i=0;i<days.length&&!err;i++){
+      run=worked[days[i].id]?run+1:0;
+      if(run>=7)err=days[i].n+'일에 7일 연속 근무가 돼요. 그 주 근무를 하루 줄여 주세요.';
+    }
+    var F=0,forced=0,auto=[],rows={};
+    days.forEach(function(d){
+      if(mh[d.id]){F+=mh[d.id].h;if(mh[d.id].ex)forced++;rows[d.id]={h:mh[d.id].h,ex:mh[d.id].ex,auto:false,edu:mh[d.id].edu}}
+      else if(!d.we&&worked[d.id]){auto.push(d);if(exf[d.id]===true)forced++}
+    });
+    var R=cap-F,N=auto.length;
+    function result(){
+      var total=0,exN=0,n=0;
+      Object.keys(rows).forEach(function(k){total+=rows[k].h;n++;if(rows[k].ex)exN++});
+      return {rows:rows,total:total,exN:exN,n:n,error:err};
+    }
+    if(!N||err)return result();
+    var cand=[];auto.forEach(function(d,k){if(exf[d.id]===undefined)cand.push(k)});
+    var nBase=frozen?0:Math.min(EX_NEED,cand.length);   // 운동을 직접 만지기 전에는 기본 7일을 자동 배정, 만진 뒤에는 자동 배정·자동 추가 없음
+    var ex={},k,c;
+    auto.forEach(function(d,kk){if(exf[d.id]===true)ex[kk]=1});
+    for(c=0;c<nBase;c++)ex[cand[c]]=1;
+    var todayStr=idOf(new Date());
+    // 자동 평일의 시간 규칙: 기본은 11(운동 있는 날 10). 총 시간이 넘치면 말일부터 한 칸씩 줄이고,
+    // 모자라면 오늘 이후 가까운 날부터 13(운동 있는 날 12)로 올린다. 12는 운동 있는 날 위주.
+    function floorOf(kk){return ex[kk]?7:8}
+    function maxOf(kk){return ex[kk]?EX_MAX:13}
+    var val=[],sum=0,lo=0,hi=0;
+    for(k=0;k<N;k++){val[k]=ex[k]?10:11;sum+=val[k];lo+=floorOf(k);hi+=maxOf(k)}
+    if(R<=lo){for(k=0;k<N;k++)val[k]=floorOf(k)}
+    else if(R>=hi){for(k=0;k<N;k++)val[k]=maxOf(k)}
+    else if(sum>R){
+      var need=sum-R,guard=0;
+      while(need>0&&guard++<60){var moved=false;for(k=N-1;k>=0&&need>0;k--){if(val[k]>floorOf(k)){val[k]--;need--;moved=true}}if(!moved)break}
+    }else if(sum<R){
+      var up=[],past=[];for(k=0;k<N;k++)(auto[k].id>=todayStr?up:past).push(k);
+      var order=up.concat(past),left=R-sum,j;
+      for(j=0;j<order.length&&left>=2;j++){k=order[j];if(val[k]+2<=maxOf(k)){val[k]+=2;left-=2}}   // 가까운 날부터 +2 (11→13, 운동일 10→12)
+      while(left>0){
+        var pick=-1;
+        for(j=0;j<order.length;j++){k=order[j];if(ex[k]&&val[k]<maxOf(k)){pick=k;break}}
+        if(pick<0)for(j=0;j<order.length;j++){k=order[j];if(val[k]<maxOf(k)){pick=k;break}}
+        if(pick<0)break;
+        val[pick]++;left--;
+      }
+    }
+    for(k=0;k<N;k++)rows[auto[k].id]={h:val[k],ex:!!ex[k],auto:true};
+    var res=result(),diff=cap-res.total;
+    if(diff>0)res.error='합계가 '+res.total+'시간이라 '+diff+'시간 모자라요. 뒤쪽 날의 시간을 늘려 주세요.';
+    else if(diff<0)res.error='최대보다 '+(-diff)+'시간 많아요. 휴무를 늘리거나 시간을 줄여 주세요.';
+    return res;
+  }
+  window.__buildPlan=buildPlan;
+
+  // 계획 모드에서 날짜를 고치면: 그 날짜 '앞'의 자동 값은 지금 값으로 고정하고, '뒤'의 자동 값만 총 시간에 맞춰 다시 계산
+  function lockBefore(id){
+    var c=cur(),ds=monthDays(),r=buildPlan(ds,c.d,c.x,autoPrior(),capOf(ds.length),c.xf);
+    ds.forEach(function(d){
+      var rw=r.rows[d.id];
+      if(d.id<id){if(rw&&rw.auto&&!c.d[d.id]){c.d[d.id]=String(rw.h);c.lk[d.id]=1}}
+      else if(c.lk[d.id]){delete c.d[d.id];delete c.lk[d.id]}   // 뒤쪽에 이전에 고정해 둔 값은 다시 자동으로
+    });
+    if(!c.xf){ds.forEach(function(d){var rw=r.rows[d.id];if(rw&&rw.ex&&exOk(d)&&c.x[d.id]!==false)c.x[d.id]=true});c.xf=true}
+  }
+
+  function isExNow(id){var c=cur(),ds=monthDays(),rw=buildPlan(ds,c.d,c.x,autoPrior(),capOf(ds.length),c.xf).rows[id];return !!(rw&&rw.ex)}
+
+  // 운동 칸: 3단계 on(운동함) / dine(회식) / off(운동안함)
+  function exBtn(st,id,disabled,done){
+    var on=st==='on',label=st==='dine'?'회식':(on&&done?'운동✓':'운동');
+    return '<button type="button" class="ex'+(on&&done?' done':'')+'" data-s="'+st+'"'+((disabled||ro())?' disabled':' data-ex="'+id+'"')+' aria-pressed="'+on+'">'+label+'</button>';
+  }
+  function exState(v,rowEx){return rowEx||v===true?'on':v==='dine'?'dine':'off'}
+
+  // 실제 근무 분: 입력값 우선, 없으면 교육일은 8시간
+  function dayMin(c,id){
+    if(c.a[id]!=null)return c.a[id];
+    return c.d[id]==='edu'?480:0;
+  }
+
+  // 오늘 계획 시간(달 보기 상태와 무관하게 오늘이 속한 달 기준)
+  function todayPlanHours(){
+    var t=new Date(),tid=idOf(t),sy=vy,sm=vm;
+    vy=t.getFullYear();vm=t.getMonth();
+    try{
+      var c=cur(),ds=monthDays(),r=buildPlan(ds,c.d,c.x,autoPrior(),capOf(ds.length),c.xf),rw=r.rows[tid];
+      return rw?rw.h:null;
+    }finally{vy=sy;vm=sm}
+  }
+  // 근무시간 workMin을 만들려면 체류시간이 얼마여야 하는지(자동 차감 포함)
+  function stayFor(workMin,exMin){
+    for(var st=workMin;st<=1440;st++){var d=st>=540?60:st>=270?30:0;if(st-d-exMin>=workMin)return st}
+    return workMin;
+  }
+  // 기본값: 08:00 출근, 오늘 계획 시간에 맞는 퇴근 시각 (계획이 없으면 08:00~18:00)
+  function calcDefault(){
+    var P=todayPlanHours();
+    cs.date=idOf(new Date());cs.ex=0;cs.in=480;cs.plan=P;
+    cs.out=(P&&P>0)?(480+stayFor(Math.round(P*60),0))%1440:1080;
+    csSave();lastDed=null;
+  }
+
+  // 계산 모드: 체류시간 기준 자동 차감(4:30 이상 30분, 9:00 이상 60분)은 제외시간과 무관, 제외시간은 그 위에 추가로 뺌
+  function hm(m){m=((m%1440)+1440)%1440;return pad(Math.floor(m/60))+':'+pad(m%60)}
+  function renderCalc(){
+    var stay=cs.out-cs.in;if(stay<=0)stay+=1440;
+    var ded=stay>=540?60:stay>=270?30:0,work=Math.max(0,stay-ded-cs.ex);
+    $('cInT').textContent=hm(cs.in);
+    $('cOutT').textContent=hm(cs.out);
+    var ex=$('cEx');
+    if(!ex.children.length){[0,10,20,30,40,50].forEach(function(v){var b=document.createElement('button');b.type='button';b.dataset.ex=v;b.textContent=v;ex.appendChild(b)})}
+    [].forEach.call(ex.children,function(b){b.setAttribute('aria-pressed',+b.dataset.ex===cs.ex)});
+    $('cBig').innerHTML=fmtHM(work)+'<small>근무시간 · '+fmtD(work)+'시간'+(cs.plan?' · 오늘 계획 '+fmtD(cs.plan*60)+'시간':'')+'</small>';
+    // 자동 차감 단계가 바뀌면 바탕이 빨갛게 세 번 깜빡임
+    if(lastDed!==null&&lastDed!==ded){var el=document.querySelector('.calc');el.classList.remove('dflash','dflash-g');void el.offsetWidth;el.classList.add(ded>lastDed?'dflash':'dflash-g')}   // 차감이 커지면 빨강, 작아지면 초록
+    lastDed=ded;
+    $('stats').innerHTML=
+      '<div><dt>체류</dt><dd>'+fmtHM(stay)+'</dd></div>'+
+      '<div><dt>자동 차감'+(stay>=540?' (9:00↑)':stay>=270?' (4:30↑)':'')+'</dt><dd>−'+fmtHM(ded)+'</dd></div>'+
+      '<div><dt>제외</dt><dd>−'+fmtHM(cs.ex)+'</dd></div>';
+  }
+  function csSave(){try{localStorage.setItem(CK,JSON.stringify(cs))}catch(e){}}
+  function nowMin(){var d=new Date();return d.getHours()*60+d.getMinutes()}
+
+  function updateCalBar(){
+    var b=$('calBtn');b.hidden=calcMode||!db;if(b.hidden)return;   // 보기 전용에서도 상태는 보이고, 누르는 것만 막음
+    // 반영 범위: 오늘 포함, 이번 달부터 3개월(예: 11월이면 1월 말일까지). 같으면 비활성, 다르면 오렌지
+    var t0=new Date(),endD=new Date(t0.getFullYear(),t0.getMonth()+3,0),end=idOf(endD),need=0,txt;
+    if(!calSync)txt='반영 기록 없음';
+    else{
+      var k=new Date(new Date(calSync.at).getTime()+9*3600000);   // 기기 시간대와 상관없이 한국 시간으로 표시
+      txt=(k.getUTCMonth()+1)+'/'+k.getUTCDate()+' '+pad(k.getUTCHours())+':'+pad(k.getUTCMinutes())+' 반영';
+      for(var d=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate());idOf(d)<=calSync.to;d.setDate(d.getDate()+1)){var id=idOf(d);if(!!calSync.set[id]!==isWorkDay(id))need++}
+      if(calSync.to<end)need++;
+      txt+=need?' · 업데이트 필요':' · 최신';
+    }
+    b.title=calSync?('반영 범위 '+calSync.from+' ~ '+calSync.to+' ('+calSync.n+'일)'):'';
+    b.disabled=ro()||(!!calSync&&!need);
+    b.classList.toggle('need',!!need);
+    $('calStat').textContent=txt;
+  }
+  function render(){
+    updateCalBar();
+    var ds=monthDays(),cap=capOf(ds.length),c=cur();
+    $('mt').textContent=calcMode?(now.getMonth()+1)+'월 '+now.getDate()+'일 ('+'일월화수목금토'[now.getDay()]+') 근무 계산':vy+'년 '+(vm+1)+'월 근무';
+    $('pm').style.visibility=$('nm').style.visibility=$('goNow').style.visibility=$('limBtn').style.visibility=calcMode?'hidden':'';
+    var lb=$('limBtn');lb.textContent=limArm?'확인':LIM+'h';lb.classList.toggle('l64',LIM===64&&!limArm);lb.classList.toggle('arm',limArm);lb.disabled=ro();
+    lb.title=LIM===64?'주 64시간제(월 최대 '+capOf(28)+'~'+capOf(31)+')':'주 52시간제(월 최대 '+CAPS[28]+'~'+CAPS[31]+')';
+    $('goNow').disabled=(vy===new Date().getFullYear()&&vm===new Date().getMonth());
+    $('cal').hidden=calcMode;$('dow').hidden=calcMode;$('calcView').hidden=!calcMode;
+    document.querySelector('.sum').classList.toggle('run',calcMode);
+    $('cap').hidden=calcMode;if(calcMode)$('err').hidden=true;
+    $('leaveMode').disabled=calcMode;
+    $('leaveMode').hidden=$('handMode').hidden=$('dirBtn').hidden=$('resetEdits').hidden=ro();
+    if(ro())setSync('보기 전용');else if($('sync').textContent==='보기 전용')setSync('')
+    $('dirBtn').textContent=dirDown?'▼ 내림':'▲ 올림';$('dirBtn').setAttribute('aria-pressed',dirDown);$('dirBtn').disabled=calcMode;
+    if(calcMode){
+      $('runMode').textContent='계산 모드';$('runMode').setAttribute('aria-pressed',true);
+      $('handMode').disabled=true;
+      var ce=document.querySelector('.calc');ce.classList.remove('under','over');
+      if(cs.date!==idOf(new Date()))calcDefault();
+      var cvh=lastCalH;if(cvh)$('calcView').style.minHeight=cvh+'px';
+      renderCalc();return;
+    }
+    document.documentElement.style.setProperty('--rows',Math.ceil((ds[0].dow+ds.length)/7));
+    $('runMode').textContent=runMode?'실행 모드':'계획 모드';
+    $('runMode').setAttribute('aria-pressed',runMode);
+    $('handMode').disabled=runMode;
+    $('resetEdits').textContent=calcMode?'입력 초기화':'수정 지우기';$('resetMonth').textContent='월 초기화';$('resetMonth').hidden=calcMode||ro();
+    var tm=0,warnEx=false,h='',b,r=buildPlan(ds,c.d,c.x,autoPrior(),cap,c.xf),msg='',okMsg=false,todayId=idOf(new Date());
+    // 실행 모드: 지난 날(오늘 전)은 기록이 없으면 계획대로 미리 채워 두고, 눌러서 고치게 함
+    function runMin(id){
+      if(c.a[id]!=null)return c.a[id];
+      if(c.d[id]==='edu')return 480;
+      var pr=r.rows[id];return (id<todayId&&pr)?pr.h*60:0;
+    }
+    function runEx(id){
+      if(c.ax[id]!==undefined)return c.ax[id];
+      var pr=r.rows[id];
+      if(id<todayId&&pr)return pr.ex?true:(c.x[id]==='dine'?'dine':undefined);
+      return undefined;
+    }
+    // 계획 모드에서 실제 기록으로 치는 날: 지난 날(기록·교육), 오늘은 실제 기록이 있을 때만
+    function actMin(d){return d.id<todayId?dayMin(c,d.id):(d.id===todayId&&c.a[d.id]!=null?c.a[d.id]:0)}
+    if(runMode){
+      // 지난 실제(오늘 기록 포함) + 앞으로 계획(오늘 기록이 없으면 오늘 계획 포함) = 예상, 월 최대와 비교
+      var act=0,planLeft=0,exN=0;
+      ds.forEach(function(d){
+        var m=runMin(d.id),pr=r.rows[d.id],pm=pr?pr.h*60:0;
+        if(d.id<todayId){act+=m}
+        else if(d.id===todayId){if(m>0)act+=m;else planLeft+=pm}
+        else planLeft+=pm;
+        if(d.id<=todayId&&m>0&&runEx(d.id)===true)exN++;
+      });
+      warnEx=exN<EX_NEED;
+      var projected=act+planLeft,diff=projected-cap*60,sg=diff>0?'+':diff<0?'−':'±';
+      $('stats').innerHTML=
+        '<div><dt>예상</dt><dd>'+fmtHM(projected)+'</dd></div>'+
+        '<div'+(diff>0?' class="over"':'')+'><dt>차이</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
+        '<div class="'+(exN<EX_NEED?'bad':'done')+'"><dt>운동</dt><dd>'+exN+'/'+EX_NEED+(exN>=EX_NEED?' ✓':'')+'</dd></div>';
+      // 계획 모드와 같은 안내: 넘치면 빨강, 모자라면 초록(더 근무 가능)
+      if(diff>0)msg='최대보다 '+fmtHM(diff)+' 많아요.';
+      else if(diff<0){msg=fmtHM(-diff)+' 더 근무할 수 있어요.';okMsg=true}
+    }else{
+      $('cap').innerHTML='최대 <b>'+cap+'시간</b> <small>(주 '+LIM+'시간제)</small>'+(limPend&&!ro()?' <button type="button" class="todaybtn" id="fitBtn">맞추기</button>':'')+(ds.length===29?' <small>(임시값)</small>':'');
+      // 화면에 보이는 운동 칸과 같은 기준으로 센다: 지난 날(실제 기록 있음)은 실제 운동, 그 외는 계획의 운동
+      var exShown=0;
+      ds.forEach(function(d){
+        var pa=actMin(d),x2=r.rows[d.id];
+        if(pa>0){if(c.d[d.id]!=='edu'&&runEx(d.id)===true)exShown++}   // 실행 모드와 같은 기준(주말 포함, 미입력은 계획의 운동)
+        else if(x2&&x2.ex&&exOk(d)&&!x2.edu)exShown++;
+      });
+      warnEx=exShown<EX_NEED;
+      var t2=r.total,mismatch=!r.error&&t2!==cap;
+      // 합계: 지난 날은 실행 모드에서 고친 실제 기록, 오늘·앞으로는 계획 시간
+      ds.forEach(function(d){var rw=r.rows[d.id],pa=actMin(d);tm+=pa>0?pa:(rw?rw.h*60:0)});
+      var pdiff=tm-cap*60,psg=pdiff>0?'+':pdiff<0?'−':'±';
+      $('stats').innerHTML=
+        '<div><dt>합계</dt><dd>'+fmtD(tm)+'</dd></div>'+
+        '<div'+(pdiff>0?' class="over"':pdiff<0?' class="under"':'')+'><dt>차이</dt><dd>'+psg+fmtD(Math.abs(pdiff))+'</dd></div>'+
+        '<div'+(warnEx?' class="bad"':'')+'><dt>운동</dt><dd>'+exShown+'/'+EX_NEED+'</dd></div>';
+      // 빨간 글자의 숫자는 위쪽 요약(합계·차이)과 같은 값(tm: 지난 날 실제 기록 반영)으로 계산
+      if(r.error&&r.error.indexOf('연속')>=0)msg=r.error;
+      else if(r.error||mismatch){
+        if(pdiff>0)msg='최대보다 '+fmtHM(pdiff)+' 많아요.';
+        else if(pdiff<0){msg=fmtHM(-pdiff)+' 더 근무할 수 있어요.';okMsg=true}   // 모자람은 경고가 아니라 여유: 초록
+      }
+    }
+    document.querySelector('.sum').classList.toggle('run',runMode);
+    $('cap').hidden=runMode;
+    $('err').textContent=msg||'';$('err').hidden=!msg;$('err').classList.toggle('ok',okMsg);
+    for(b=0;b<ds[0].dow;b++)h+='<div class="cell blank" aria-hidden="true"></div>';
+    var d21=new Date(vy,vm,21),fdNum=21-((d21.getDay()+6)%7)+4;
+    while(fdNum>7&&HOL[idOf(new Date(vy,vm,fdNum))])fdNum-=7;   // 공휴일과 겹치면 전주 금요일   // 21일이 속한 주(월~일)의 금요일 = 삼성전자 패밀리데이
+    ds.forEach(function(d){
+      var m=c.d[d.id],cls='cell'+(d.we?' we':'')+(HOL[d.id]?' hol':''),inner,exbtn='',mcls='main',style='';
+      var holSat=d.dow===6&&!!HOL[d.id],kind=(d.dow===0||HOL[d.id])?'red':d.dow===6?'sat':'';   // 휴일인 토요일은 일요일처럼 빨강
+      var past=runMode&&d.id<todayId, isToday=d.id===todayId;
+      if(isToday)cls+=' todaycell';
+      if(snapWork&&d.id>=todayId&&d.id>=snapWork.from&&d.id<=snapWork.to&&!!snapWork.set[d.id]!==isWorkDay(d.id))cls+=' diffcell';
+      var dn='<span class="drow"><small class="d '+kind+'">'+d.n+'</small>'+(m==='edu'?'<small class="tag">교육</small>':'')+(d.n===fdNum?'<small class="fd">패데</small>':'')+'</span>';
+      var restText=(m==='off'?'휴무':m==='leave'?'연차':(HOL[d.id]&&(!d.we||holSat)?'휴일':'–'));
+      var am=runMode?runMin(d.id):0,isEdu=m==='edu';
+      if(runMode&&(past||isToday)&&am>0){
+        // 실제 기록: 어제까지는 회색 계열, 오늘은 원래 색
+        if(past){mcls+=' gry '+kind}else{mcls+=' hrs';style=' style="--h:'+hue(am/60)+'"'}
+        inner=dn+splitHtml(am);
+        if(!isEdu)exbtn=exBtn(exState(runEx(d.id),false),d.id,false,true);
+      }else if(past){
+        cls+=' rest';mcls+=' gry0 '+kind;inner=dn+restText;
+      }else{
+        // 오늘(기록 없음)·미래: 계획 그대로. 계획 모드에서 지난 날은 실제 기록으로 바꿔 보여줌
+        var x=r.rows[d.id],pa=(!runMode)?actMin(d):0;
+        if(pa>0){
+          mcls+=' hrs';style=' style="--h:'+hue(pa/60)+'"';
+          inner=dn+splitHtml(pa);
+          if(exOk(d)&&m!=='edu')exbtn=exBtn(exState(runEx(d.id),false),d.id,true,true);
+        }else if(x){
+          mcls+=' hrs';style=' style="--h:'+hue(x.h)+'"';
+          inner=dn+splitHtml(x.h*60);
+          if(exOk(d)&&!x.edu){
+            exbtn=exBtn(exState(c.x[d.id],x.ex),d.id,runMode,false);
+          }
+        }else if(!d.we&&r.error&&!HOL[d.id]&&m!=='off'&&m!=='leave'){cls+=' rest';inner=dn+'?'}
+        else{cls+=' rest';if(kind)mcls+=' '+kind+'bg';inner=dn+restText}
+      }
+      if(past)cls+=' past';
+      if(!exbtn)exbtn=(holSat&&inner.indexOf('class="tm"')>=0)?'<span class="nex hol">휴일</span>':'<span class="nex"></span>';   // 휴일인 토요일에 근무 시간이 있으면 운동 칸 자리에만 빨강 바탕
+      h+='<div class="'+cls+'"><button type="button" class="'+mcls+'"'+style+' data-id="'+d.id+'" aria-label="'+(vm+1)+'월 '+d.n+'일">'+inner+'</button>'+exbtn+'</div>';
+    });
+    $('cal').innerHTML=h;
+    lastCalH=$('dow').offsetHeight+parseFloat(getComputedStyle(document.querySelector('.calc')).rowGap||0)+$('cal').offsetHeight;
+    $('cal').classList.toggle('warnex',warnEx);
+    $('cal').classList.toggle('leavemode',leaveMode);
+    var calcEl=document.querySelector('.calc');
+    calcEl.classList.toggle('under',!runMode&&tm<cap*60);   // 최대 미만: 초록
+    calcEl.classList.toggle('over',!runMode&&tm>cap*60);    // 최대 초과: 빨강 (딱 맞으면 기본 흰색)
+  }
+
+  $('cal').addEventListener('click',function(e){
+    if(ro())return;
+    var c=cur(),ex=e.target.closest('button[data-ex]');
+    if(ex){
+      var xid=ex.dataset.ex,st=ex.dataset.s;
+      // 올림: 운동함 → 회식 → 운동안함 → 운동함 / 내림: 운동함 → 운동안함 → 회식 → 운동함
+      var tg=dirDown?{on:'off',off:'dine',dine:'on'}[st]:{on:'dine',dine:'off',off:'on'}[st];
+      if(new Date(xid+'T00:00:00').getDay()===6)tg={on:'off',off:'on',dine:'on'}[st];   // 토요일은 회식 없음: 운동함 ↔ 운동안함
+      if(runMode){c.ax[xid]=(tg==='on')?true:(tg==='dine'?'dine':false)}   // 운동안함도 직접 선택한 값으로 저장(계획 기본값이 다시 덮지 않게)
+      else{
+        // 처음 운동을 만지면 지금의 자동 배정 7일을 그대로 '내 선택'으로 굳히고, 그 뒤로는 자동으로 더하거나 옮기지 않음
+        lockBefore(xid);
+        if(tg==='dine'){c.x[xid]='dine';c.d[xid]='8';delete c.lk[xid]}                     // 회식: 근무시간 8로 고정
+        else{
+          if(st==='dine'&&c.d[xid]==='8'&&[0,6].indexOf(new Date(xid+'T00:00:00').getDay())<0)delete c.d[xid];   // 평일만 자동으로 되돌림(토요일은 8시간 근무 유지)                                   // 회식 해제: 8 고정도 풀어 자동으로
+          if(tg==='on'){c.x[xid]=true;if(parseInt(c.d[xid],10)>EX_MAX)c.d[xid]=String(EX_MAX)}   // 운동 켜면 13 → 12
+          else delete c.x[xid];                                                              // 운동안함
+        }
+      }
+      save();render();return;
+    }
+    var t=e.target.closest('button[data-id]');if(!t)return;
+    var id=t.dataset.id,d=new Date(id+'T00:00:00'),we=d.getDay()===0||d.getDay()===6,code=c.d[id]||'',next;
+    if(leaveMode){
+      if(we||HOL[id]){setHint('주말·공휴일에는 연차·교육이 없어요.');return}
+      if(code==='leave')next='edu';else if(code==='edu')next='';else next='leave';
+      lockBefore(id);delete c.lk[id];
+      if(next)c.d[id]=next;else delete c.d[id];
+      save();render();return;
+    }
+    if(runMode){
+      if(id>idOf(new Date())){setHint('앞으로의 날짜는 계획 모드에서 바꿔요.');return}
+      if(code==='leave'){setHint('연차 날짜예요. 바꾸려면 연차·교육 버튼을 켜고 눌러요.');return}
+      openTime(id);return;
+    }
+    if(id<idOf(new Date())&&dayMin(c,id)>0&&(handMode||true)){setHint('지난 날은 실행 모드에서 바꿔요.');return}
+    if(handMode){openWheel(id);return}
+    if(code==='leave'||code==='edu'){setHint('연차·교육 날짜는 연차·교육 버튼을 켜고 바꿔요.');return}
+    var cyc=we?WEEKEND_CYCLE:(HOL[id]?HOLIDAY_CYCLE:WEEKDAY_CYCLE),exDay=isExNow(id);
+    if(exDay)cyc=cyc.filter(function(v){return v===''||+v<=EX_MAX});
+    var i=cyc.indexOf(code);
+    if(dirDown){   // 내림: 순서를 거꾸로. 자동 값에서 시작하면 지금 보이는 시간에서 1시간 내림
+      if(i>=0)next=cyc[(i-1+cyc.length)%cyc.length];
+      else if(!we){var ds1=monthDays(),rw1=buildPlan(ds1,c.d,c.x,autoPrior(),capOf(ds1.length),c.xf).rows[id];next=rw1?String(Math.max(7,Math.min(exDay?EX_MAX:13,rw1.h-1))):cyc[cyc.length-1]}
+      else next=cyc[cyc.length-1];
+    }else next=(i<0&&we)?'8':cyc[(i+1)%cyc.length];   // 올림: 주말 첫 터치는 8부터
+    if(c.lk[id]){i=cyc.indexOf(c.d[id]||'')}   // 고정돼 있던 값에서 이어서 돌림
+    lockBefore(id);delete c.lk[id];
+    if(next)c.d[id]=next;else delete c.d[id];
+    save();render();
+  });
+
+  $('calcView').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    if(b.dataset.ex!=null){cs.ex=+b.dataset.ex;csSave();renderCalc();return}
+    if(b.dataset.c){
+      var p=b.dataset.c.split(':'),k=p[0],a=p[1];
+      var cur0=cs[k];
+      cs[k]=a==='now'?nowMin():((cur0+parseInt(a,10))%1440+1440)%1440;
+      csSave();renderCalc();return;
+    }
+    if(b.id==='cInT'||b.id==='cOutT'){
+      openCalcTime(b.id==='cInT'?'cin':'cout');   // 계산 모드에서는 숫자를 누르면 바로 수기(돌림판)
+    }
+  });
+
+  var hintTimer=null;
+  function setHint(msg){
+    var h=msg||'';   // 모드 설명은 '설명 보기'로 옮김. 여기는 잠깐 뜨는 안내만
+    $('modeHint').textContent=h;$('modeHint').hidden=!h;
+    clearTimeout(hintTimer);if(msg)hintTimer=setTimeout(function(){setHint()},4000);
+  }
+  function setModes(l,hd){
+    leaveMode=l;handMode=hd;
+    $('leaveMode').setAttribute('aria-pressed',l);$('handMode').setAttribute('aria-pressed',hd);$('cal').classList.toggle('leavemode',l);setHint();
+  }
+  $('dirBtn').addEventListener('click',function(){dirDown=!dirDown;render()});
+  $('leaveMode').addEventListener('click',function(){setModes(!leaveMode,false)});
+  $('handMode').addEventListener('click',function(){setModes(false,!handMode)});
+  $('runMode').addEventListener('click',function(){if(!runMode&&!calcMode){runMode=true}else if(runMode){runMode=false;if(!ro()){calcMode=true;lastDed=null}}else{calcMode=false;document.querySelector('.calc').classList.remove('dflash','dflash-g')}setModes(false,false);render()});   // 계획 → 실행 → 계산 → 계획
+
+  // ----- 돌림판(시트) -----
+  var IT=40,sheetMode=null,sheetId=null,wheelEls=[],wheelItems=[];
+  function buildWheel(items,idx){
+    var el=document.createElement('div');el.className='wheel';el.tabIndex=0;
+    var h='<div class="pad"></div>';
+    items.forEach(function(w,i){h+='<div class="it'+(i===idx?' on':'')+'">'+w.l+'</div>'});
+    el.innerHTML=h+'<div class="pad"></div>';
+    el._n=items.length;
+    el.addEventListener('scroll',function(){
+      var i=wIdx(el),k;for(k=0;k<el._n;k++)el.children[k+1].classList.toggle('on',k===i);
+    });
+    el.addEventListener('click',function(e){var t=e.target.closest('.it');if(!t)return;var i=Array.prototype.indexOf.call(el.children,t)-1;el.scrollTo({top:i*IT,behavior:'smooth'})});
+    el.addEventListener('keydown',function(e){
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();el.scrollTo({top:(wIdx(el)+(e.key==='ArrowDown'?1:-1))*IT,behavior:'smooth'})}
+      else if(e.key==='Enter')$('sheetOk').click();else if(e.key==='Escape')closeSheet();
+    });
+    el._idx=idx;return el;
+  }
+  function wIdx(el){return Math.max(0,Math.min(el._n-1,Math.round(el.scrollTop/IT)))}
+  function showSheet(title,els,units,clear){
+    $('sheetTitle').textContent=title;
+    var box=$('wheels'),wrap=$('sheet').querySelector('.wrap');box.innerHTML='';
+    wrap.querySelectorAll('.unit').forEach(function(u){u.remove()});
+    els.forEach(function(el){box.appendChild(el)});
+    units.forEach(function(u){var s=document.createElement('span');s.className='unit';s.setAttribute('aria-hidden','true');s.textContent=u[0];s.style.left=u[1];wrap.appendChild(s)});
+    $('sheetClear').hidden=!clear;
+    $('sheetBtns').style.gridTemplateColumns=clear?'1fr 1fr 1fr':'1fr 1fr';
+    $('sheet').hidden=false;
+    els.forEach(function(el){el.scrollTop=el._idx*IT});
+    wheelEls=els;els[0].focus({preventScroll:true});
+  }
+  function closeSheet(){$('sheet').hidden=true;sheetMode=null;sheetId=null}
+  function titleOf(id){var d=new Date(id+'T00:00:00');return (d.getMonth()+1)+'월 '+d.getDate()+'일 ('+'일월화수목금토'[d.getDay()]+')'}
+
+  // 계산: 출근/퇴근 시각 (시 / 분)
+  function openCalcTime(which){
+    var v=which==='cin'?cs.in:cs.out,hs=[],ms=[],i;
+    sheetMode=which;sheetId=which;
+    for(i=0;i<24;i++)hs.push({l:pad(i),v:i});
+    for(i=0;i<60;i++)ms.push({l:pad(i),v:i});
+    showSheet(which==='cin'?'출근 시각':'퇴근 예정 시각',[buildWheel(hs,Math.floor(v/60)),buildWheel(ms,v%60)],[['시','calc(25% + 26px)'],['분','calc(75% + 26px)']],false);
+  }
+
+  // 계획: 시간 한 줄
+  function openWheel(id){
+    var d=new Date(id+'T00:00:00'),we=d.getDay()===0||d.getDay()===6,c=cur(),code=c.d[id]||'';
+    sheetMode='plan';sheetId=id;
+    wheelItems=[{l:we?'쉼':HOL[id]?'휴일':'자동',v:''}];
+    if(!we&&!HOL[id])wheelItems.push({l:'휴무',v:'off'});
+    var maxN=isExNow(id)?EX_MAX:16;
+    for(var n=1;n<=maxN;n++)wheelItems.push({l:String(n),v:String(n)});
+    var idx=0;wheelItems.forEach(function(w,i){if(w.v===code)idx=i});
+    if(!code){var r=buildPlan(monthDays(),c.d,c.x,autoPrior(),capOf(monthDays().length),c.xf).rows[id];if(r)wheelItems.forEach(function(w,i){if(w.v===String(r.h))idx=i})}
+    showSheet(titleOf(id),[buildWheel(wheelItems,idx)],[['시간','calc(50% + 34px)']],false);
+  }
+  // 실행: 시 / 분
+  function openTime(id){
+    var c=cur(),m=dayMin(c,id);
+    if(!(m>0)){
+      var r=buildPlan(monthDays(),c.d,c.x,autoPrior(),capOf(monthDays().length),c.xf).rows[id];
+      m=r?r.h*60:480;
+    }
+    sheetMode='run';sheetId=id;
+    var hs=[],ms=[],i;
+    for(i=0;i<=20;i++)hs.push({l:String(i),v:i});
+    for(i=0;i<60;i++)ms.push({l:pad(i),v:i});
+    showSheet(titleOf(id),[buildWheel(hs,Math.min(20,Math.floor(m/60))),buildWheel(ms,m%60)],[['시','calc(25% + 26px)'],['분','calc(75% + 26px)']],c.a[id]!=null);
+  }
+  $('sheetCancel').addEventListener('click',closeSheet);
+  $('sheetBg').addEventListener('click',closeSheet);
+  $('sheetClear').addEventListener('click',function(){
+    if(sheetMode!=='run'||!sheetId)return;
+    var c=cur();delete c.a[sheetId];delete c.ax[sheetId];closeSheet();save();render();
+  });
+  $('sheetOk').addEventListener('click',function(){
+    if(!sheetId)return;var c=cur(),id=sheetId;
+    if(sheetMode==='cin'||sheetMode==='cout'){
+      var mm=wIdx(wheelEls[0])*60+wIdx(wheelEls[1]);
+      if(sheetMode==='cin')cs.in=mm;else cs.out=mm;
+      closeSheet();csSave();renderCalc();return;
+    }
+    if(sheetMode==='plan'){
+      var v=wheelItems[wIdx(wheelEls[0])].v;
+      lockBefore(id);delete c.lk[id];
+      if(v)c.d[id]=v;else delete c.d[id];
+    }else{
+      var mins=wIdx(wheelEls[0])*60+wIdx(wheelEls[1]);
+      c.a[id]=mins;   // 0:00도 직접 입력한 값으로 저장
+    }
+    closeSheet();save();render();
+  });
+
+  $('helpBtn').addEventListener('click',function(){
+    var open=$('helpBox').hidden;$('helpBox').hidden=!open;
+    $('helpBtn').setAttribute('aria-expanded',open);$('helpBtn').textContent=open?'설명 닫기':'설명 보기';
+    if(open)$('helpBox').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  // 지우기는 두 번 눌러야 실행 (공유 저장소 기록 보호)
+  //  - 직접수정 지우기: 이번 달 계획에서 내가 고친 것(시간·운동)만 지움 → 자동 계획으로 복귀, 실제 기록은 유지
+  //  - 이번달 초기화: 이번 달 계획 수정과 실제 기록을 모두 지움
+  var armed={},armTimer={};
+  function twoStep(key,btn,label,action){
+    btn.addEventListener('click',function(){
+      if(calcMode&&key==='edits'){calcDefault();renderCalc();return}
+      if(!armed[key]){
+        armed[key]=true;btn.textContent='한 번 더!';
+        armTimer[key]=setTimeout(function(){armed[key]=false;render()},4000);return;
+      }
+      clearTimeout(armTimer[key]);armed[key]=false;
+      action(cur());save();render();
+    });
+  }
+  // 계획을 다시 짜는 동작(초기화·52/64 전환) 전에, 오늘 이전 날짜는 지금 화면 값을 실제 기록으로 굳혀 둔다(바뀌지 않게)
+  function freezePast(){
+    var t=idOf(new Date()),k0=t.slice(0,7),sy=vy,sm=vm,ks=Object.keys(all);
+    if(ks.indexOf(k0)<0)ks.push(k0);ks.sort();
+    try{ks.forEach(function(k){
+      if(k>k0)return;var p=k.split('-');vy=+p[0];vm=+p[1]-1;
+      var c=cur(),ds=monthDays(),r=buildPlan(ds,c.d,c.x,autoPrior(),capOf(ds.length),c.xf),ch=false;
+      ds.forEach(function(d){
+        if(d.id>=t||c.d[d.id]==='edu')return;
+        var pr=r.rows[d.id];
+        if(c.a[d.id]==null){if(!pr)return;c.a[d.id]=pr.h*60;ch=true}
+        // 운동 표시도 지금 보이는 대로 굳힘(시간만 적고 운동을 안 만진 날이 계획 재계산으로 반짝이지 않게)
+        if(c.ax[d.id]===undefined){c.ax[d.id]=(pr&&pr.ex)?true:(c.x[d.id]==='dine'?'dine':false);ch=true}
+      });
+      if(ch&&db)dirty[k]=true;
+    })}finally{vy=sy;vm=sm}
+    if(!db)try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}
+  }
+  function clearFuture(c,fields){var t=idOf(new Date());fields.forEach(function(f){var o=c[f]||{},n={};Object.keys(o).forEach(function(i){if(i<t)n[i]=o[i]});c[f]=n})}
+  twoStep('edits',$('resetEdits'),'직접수정 지우기',function(c){freezePast();clearFuture(c,['d','x','lk']);delete c.xf});
+  twoStep('month',$('resetMonth'),'이번달 초기화',function(c){freezePast();clearFuture(c,['d','x','lk','a','ax']);delete c.xf});
+  $('calBtn').addEventListener('click',function(){
+    if(!db||ro()||$('calBtn').disabled)return;
+    var t=new Date();
+    // 맥북의 Claude가 열려 있으면 바로 보냄. 아니면 맥북에서 직접 업데이트하면 됨
+    var cp=(window.claude&&window.claude.use)?window.claude.use('comments').catch(function(){return null}):Promise.resolve(null);
+    cp.then(function(cm){
+      if(!cm)return 'none';
+      return cm.canSendToClaude().then(function(st){
+        if(st!=='available')return st;
+        return cm.anchorFor($('calBtn')).then(function(anchor){
+          return cm.sendToClaude({anchor:anchor,text:'캘린더 업데이트해줘 (웹 요청 '+pad(t.getHours())+':'+pad(t.getMinutes())+')'}).then(function(){return 'sent'});
+        });
+      });
+    }).then(function(r){setHint(r==='sent'?'Claude에게 보냈어요.':'맥북에서 업데이트해 주세요.')}).catch(function(){setHint('맥북에서 업데이트해 주세요.')});
+  });
+  // 주 52시간 ↔ 64시간: 한 번 누르면 확인 요청, 4초 안에 다시 누르면 바뀜
+  var limArm=false,limTimer=null;
+  var limPend=false;   // 최대를 바꿨지만 아직 '맞추기'를 누르지 않은 상태
+  // 최대를 바꿀 때 오늘 이후 자동 값이 저절로 바뀌지 않게, 바꾸기 전 최대 기준의 자동 값을 그대로 굳혀 둔다
+  function freezeFuture(){
+    var t=idOf(new Date()),k0=t.slice(0,7),sy=vy,sm=vm,ks=Object.keys(all);
+    if(ks.indexOf(k0)<0)ks.push(k0);ks.sort();
+    try{ks.forEach(function(k){
+      if(k<k0)return;var p=k.split('-');vy=+p[0];vm=+p[1]-1;
+      var c=cur(),ds=monthDays(),r=buildPlan(ds,c.d,c.x,autoPrior(),capOf(ds.length),c.xf),ch=false;
+      ds.forEach(function(d){
+        var rw=r.rows[d.id];
+        if(d.id>=t&&rw&&rw.auto&&!c.d[d.id]){c.d[d.id]=String(rw.h);c.lk[d.id]=1;ch=true}
+      });
+      if(!c.xf){ds.forEach(function(d){var rw=r.rows[d.id];if(rw&&rw.ex&&exOk(d)&&c.x[d.id]!==false)c.x[d.id]=true});c.xf=true;ch=true}
+      if(ch&&db)dirty[k]=true;
+    })}finally{vy=sy;vm=sm}
+  }
+  function persistAll(){if(db)flush();else try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}}
+  function saveLim(){
+    if(db)db.collection('sync').doc('limit').set({h:LIM,pend:limPend}).catch(function(){setSync('저장하지 못했어요. 연결을 확인해 주세요',true)});
+    else try{localStorage.setItem('plan-limit-v1',JSON.stringify({h:LIM,pend:limPend}))}catch(e){}
+  }
+  function applyLim(v,local,pend){
+    if(v===LIM){if(!local)limPend=!!pend;return}
+    if(local){freezePast();freezeFuture()}   // 바꾸기 전 최대 기준으로 지난 날·앞으로의 자동 값을 굳힘
+    LIM=v;limPend=local?true:!!pend;
+    if(local)persistAll();
+  }
+  // 맞추기: 굳혀 둔 자동 값(lk)을 풀어 새 최대에 맞춰 다시 계산
+  function fitLim(){
+    var k0=idOf(new Date()).slice(0,7);
+    Object.keys(all).forEach(function(k){
+      var m=all[k];if(k<k0||!m||!m.lk||!Object.keys(m.lk).length)return;
+      Object.keys(m.lk).forEach(function(i){if(m.d)delete m.d[i]});m.lk={};
+      if(db)dirty[k]=true;
+    });
+    limPend=false;persistAll();saveLim();render();
+  }
+  $('cap').addEventListener('click',function(e){if(e.target&&e.target.id==='fitBtn'&&!ro())fitLim()});
+  $('limBtn').addEventListener('click',function(){
+    if(ro())return;
+    var to=LIM===52?64:52;
+    if(!limArm){
+      limArm=true;render();
+      setHint('주 '+to+'시간제(월 최대 '+capOf2(to,28)+'~'+capOf2(to,31)+'시간)로 바꿀까요? 한 번 더 누르면 바뀌어요. 칸 값은 그대로이고, 필요하면 맞추기 버튼을 눌러요.');
+      clearTimeout(limTimer);limTimer=setTimeout(function(){limArm=false;setHint();render()},4000);return;
+    }
+    clearTimeout(limTimer);limArm=false;setHint();
+    applyLim(to,true);
+    saveLim();
+    render();
+  });
+  function capOf2(l,n){return (l===64?CAPS64:CAPS)[n]}
+  $('goNow').addEventListener('click',function(){var t=new Date();vy=t.getFullYear();vm=t.getMonth();render()});
+  $('pm').addEventListener('click',function(){vm--;if(vm<0){vm=11;vy--}render()});
+  $('nm').addEventListener('click',function(){vm++;if(vm>11){vm=0;vy++}render()});
+
+  // ----- 저장소: 공유 db(있으면) / 이 기기(없으면) -----
+  function startLocal(){
+    try{var raw=localStorage.getItem(LKEY);if(raw)all=JSON.parse(raw)||{}}catch(e){}
+    try{var rl=localStorage.getItem('plan-limit-v1');if(rl==='64'){LIM=64}else if(rl&&rl.charAt(0)==='{'){var jl=JSON.parse(rl);LIM=jl.h===64?64:52;limPend=!!jl.pend}}catch(e){}
+    setSync('이 기기에만 저장 중');render();
+  }
+  function startDb(d){
+    db=d;setSync('불러오는 중…');
+    var t=setTimeout(function(){setSync('아직 불러오지 못했어요. 보이는 내용이 최신이 아닐 수 있어요',true)},10000);
+    d.collection('sync').doc('calendar').onSnapshot(function(sn){
+      var v=sn.exists?JSON.parse(JSON.stringify(sn.data())):null;
+      if(v&&v.days){var set={};v.days.forEach(function(x){set[x]=true});calSync={at:v.at,from:v.from,to:v.to,n:v.days.length,set:set}}else calSync=null;
+      render();
+    },function(){});
+    d.collection('sync').doc('limit').onSnapshot(function(sn){
+      var v=sn.exists?sn.data():null;applyLim(v&&v.h===64?64:52,false,v&&v.pend);render();
+    },function(){});
+    d.collection('sync').doc('workdays').onSnapshot(function(sn){
+      var v=sn.exists?JSON.parse(JSON.stringify(sn.data())):null;
+      if(v&&v.days){var set={};v.days.forEach(function(x){set[x]=true});snapWork={from:v.from,to:v.to,set:set}}else snapWork=null;
+      render();
+    },function(){});
+    d.collection('months').onSnapshot(function(snap){
+      var n={};snap.docs.forEach(function(x){n[x.id]=JSON.parse(JSON.stringify(x.data()))});   // 저장소 데이터는 얼려서 오므로 깊은 복사 후 편집
+      if(!snap.metadata.fromCache){clearTimeout(t);setSync('저장됨')}
+      // 내가 저장하는 중이거나 아직 못 보낸 수정이 있으면, 늦게 도착한 옛 상태가 화면을 되돌리지 않게 무시
+      if(writing||Object.keys(dirty).some(function(k){return dirty[k]}))return;
+      // 내용이 같으면 화면을 다시 그리지 않음(터치 도중에 칸이 교체돼 클릭이 사라지는 것 방지)
+      if(canon(n)===canon(all))return;
+      all=n;
+      render();
+    },function(){clearTimeout(t);setSync('저장소에 연결하지 못했어요',true)});
+  }
+  // ----- 테마: 자동(기기 설정 따름) → 라이트 → 다크 -----
+  var TK='theme-pref-v1',TH=['auto','light','dark'],TL={auto:'자동',light:'라이트',dark:'다크'},tp='light',origTheme=document.documentElement.getAttribute('data-theme');
+  try{var rt=localStorage.getItem(TK);if(TH.indexOf(rt)>=0)tp=rt}catch(e){}
+  function applyTheme(){
+    var r=document.documentElement;
+    if(tp==='auto'){if(origTheme)r.setAttribute('data-theme',origTheme);else r.removeAttribute('data-theme')}
+    else r.setAttribute('data-theme',tp);
+    $('themeBtn').textContent=TL[tp];
+  }
+  $('themeBtn').addEventListener('click',function(){
+    tp=TH[(TH.indexOf(tp)+1)%TH.length];
+    try{localStorage.setItem(TK,tp)}catch(e){}
+    applyTheme();
+  });
+  applyTheme();
+  window.addEventListener('hashchange',render);
+  render();
+  var p=(window.claude&&window.claude.use)?window.claude.use('db').catch(function(){return null}):Promise.resolve(null);
+  p.then(function(d){
+    if(!d){startLocal();return}
+    startDb(d);
+    // 수정 권한이 없으면(가족 보기 전용) 편집 버튼을 숨기고 보기 전용으로
+    var up=(window.claude&&window.claude.use)?window.claude.use('user').catch(function(){return null}):Promise.resolve(null);
+    up.then(function(u){return u&&u.can?u.can('data.write'):null}).then(function(v){if(v===false){roPerm=true;render()}}).catch(function(){});
+  });
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+</script>
+</body>
+</html>
+
