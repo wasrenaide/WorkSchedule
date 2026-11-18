@@ -64,9 +64,16 @@
     '#sync.cdirty{color:#e65100!important;font-weight:700!important}' +
     '#cloudOpen.dirty{background:#fff3e0;border-color:#ef6c00;color:#e65100;font-weight:700}' +
     '@media (prefers-color-scheme:dark){#cloudOpen.dirty{background:#3a2610;color:#ffb74d;border-color:#ef6c00}#sync.cdirty{color:#ffb74d!important}}' +
-    '#cloudBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:none;align-items:center;justify-content:center;gap:10px;padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));background:#ef6c00;color:#fff;font-size:14px;font-weight:700;box-shadow:0 -2px 8px rgba(0,0,0,.25)}' +
-    '#cloudBar button{font:inherit;font-size:14px;font-weight:700;padding:6px 14px;border-radius:999px;border:0;background:#fff;color:#e65100}' +
-    'body.cbar #cloudBar{display:flex}body.cbar{padding-bottom:56px}';
+    '#cloudBar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:none;align-items:center;justify-content:space-between;gap:6px;padding:8px 8px 8px 14px;background:var(--surface);color:var(--fg);border:1px solid #ffd699;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.16);font-size:13px}' +
+    '#cloudBar .t{display:flex;align-items:center;gap:8px;font-weight:600;color:#b45309;min-width:0}' +
+    '#cloudBar .t i{flex:none;width:8px;height:8px;border-radius:50%;background:#f59e0b}' +
+    '#cloudBar .b{display:flex;align-items:center;gap:2px;flex:none}' +
+    '#cloudBar button{font:inherit;font-size:13px;border:0;cursor:pointer}' +
+    '#cloudBar .u{background:transparent;color:var(--muted);padding:8px 10px;border-radius:999px}' +
+    '#cloudBar .s{background:#f59e0b;color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}' +
+    '#cloudBar button:disabled{opacity:.6}' +
+    '@media (prefers-color-scheme:dark){#cloudBar{border-color:#7a5418}#cloudBar .t{color:#ffcb7a}#cloudBar .s{background:#d98a0a}}' +
+    'body.cbar #cloudBar{display:flex}body.cbar{padding-bottom:84px}';
   document.head.appendChild(css);
 
   var row = document.createElement('div');
@@ -76,16 +83,43 @@
   if (foot && foot.parentNode) foot.parentNode.insertBefore(row, foot.nextSibling); else document.body.appendChild(row);
   var bar = document.createElement('div');
   bar.id = 'cloudBar';
-  bar.innerHTML = '<span>● 서버에 저장 안 됨</span><button type="button" id="cloudBarBtn">지금 저장</button>';
+  bar.innerHTML = '<span class="t"><i></i>저장 안 된 변경이 있어요</span><span class="b"><button type="button" class="u" id="cloudBarUndo">되돌리기</button><button type="button" class="s" id="cloudBarBtn">저장</button></span>';
   document.body.appendChild(bar);
   document.getElementById('cloudBarBtn').addEventListener('click', quickSave);
+  document.getElementById('cloudBarUndo').addEventListener('click', askUndo);
   function quickSave() {
     var b = document.getElementById('cloudBarBtn'); b.disabled = true; b.textContent = '저장 중…';
-    rpc('app_save', { p_name: st.name, p_pin: st.pin, p_data: collect(), p_base: st.base || 0, p_force: false }).then(function (r) {
-      b.disabled = false; b.textContent = '지금 저장';
-      if (r.ok) { st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); return; }
+    var payload = collect();
+    rpc('app_save', { p_name: st.name, p_pin: st.pin, p_data: payload, p_base: st.base || 0, p_force: false }).then(function (r) {
+      b.disabled = false; b.textContent = '저장';
+      if (r.ok) { writeSnap(payload); st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); return; }
       show('');
       if (r.error === 'conflict') conflict(r.version); else show(errText(r), true);
+    });
+  }
+  /* ---------- 변경 되돌리기: 마지막 저장(또는 불러오기) 때의 사본으로 복원 ---------- */
+  var SNAP = 'cloud-snap-v1';
+  function writeSnap(o) { try { localStorage.setItem(SNAP, JSON.stringify(o)); } catch (e) {} }
+  function readSnap() { try { return JSON.parse(localStorage.getItem(SNAP)); } catch (e) { return null; } }
+  function clearSnap() { try { localStorage.removeItem(SNAP); } catch (e) {} }
+  function canUndo() { return !!(st.name && isDirty() && (st.atMs || st.at)); }   // 한 번도 저장 안 했으면 되돌릴 곳이 없음
+  function askUndo() {
+    show('');
+    var t = st.atMs ? stamp(st.atMs) : (st.at || '');
+    back.firstChild.innerHTML = '<h2>변경을 되돌릴까요?</h2>' +
+      '<p>저장하지 않은 변경을 버리고 마지막으로 저장한 상태' + (t ? '(' + esc(t) + ')' : '') + '로 돌아가요. 되돌린 뒤에는 다시 살릴 수 없어요.</p>' +
+      '<div class="row"><button id="uYes" class="pri" type="button">되돌리기</button><button id="uNo" type="button">취소</button></div>';
+    bind('uYes', doUndo);
+    bind('uNo', close);
+  }
+  function doUndo() {
+    var snap = readSnap();
+    if (snap) { apply(snap); st.edited = 0; writeSt(); location.reload(); return; }
+    busy(true);   // 사본이 없으면(예전에 저장한 경우) 서버 저장본으로
+    rpc('app_load', { p_name: st.name, p_pin: st.pin }).then(function (r) {
+      if (!r.ok) { show(errText(r), true); return; }
+      if (!r.data) { show('되돌릴 저장본이 서버에 없어요.', true); return; }
+      apply(r.data); writeSnap(r.data); st.base = r.version; st.edited = 0; st.atMs = Date.now(); writeSt(); location.reload();
     });
   }
   function isDirty() {
@@ -117,6 +151,7 @@
     var o = document.getElementById('cloudOpen');
     if (o && st.name) { o.className = d ? 'dirty' : ''; o.textContent = (d ? '● 저장 필요 · ☁ ' : '☁ ') + st.name + ' · 저장/불러오기'; }
     document.body.classList.toggle('cbar', d);
+    var u = document.getElementById('cloudBarUndo'); if (u) u.style.display = canUndo() ? '' : 'none';
     setTimeout(function () { painting = false; }, 0);
   }
   if (syncEl) {
@@ -158,13 +193,15 @@
       box.innerHTML = '<h2>☁ ' + esc(st.name) + '</h2>' +
         '<p>서버 버전 ' + (st.base || 0) + (st.at ? ' · 마지막 ' + esc(st.at) : '') + '</p>' + m +
         '<div class="row"><button id="cSave" class="pri" type="button">서버에 저장</button><button id="cLoad" type="button">서버에서 불러오기</button></div>' +
+        (canUndo() ? '<div class="row"><button id="cUndo" type="button">저장 안 된 변경 되돌리기</button></div>' : '') +
         '<div class="row"><button id="cPin" type="button">PIN 바꾸기</button><button id="cOut" type="button">로그아웃</button></div>' +
         '<div class="row"><button id="cClose" type="button">닫기</button></div>' +
         '<p>저장은 이 폰 데이터를 서버로 올려요. 불러오기는 서버 데이터로 이 폰을 바꿔요. 서버에 더 새 데이터가 있으면 저장이 막혀요.</p>' + note;
       bind('cSave', function () { doSave(false); });
       bind('cLoad', doLoad);
+      bind('cUndo', askUndo);
       bind('cPin', changePin);
-      bind('cOut', function () { if (confirm('로그아웃할까요? 이 폰의 근무 데이터는 그대로 남아요.')) { st = {}; writeSt(); label(); show('로그아웃했어요.'); } });
+      bind('cOut', function () { if (confirm('로그아웃할까요? 이 폰의 근무 데이터는 그대로 남아요.')) { st = {}; clearSnap(); writeSt(); label(); show('로그아웃했어요.'); } });
     }
     bind('cClose', close);
   }
@@ -182,7 +219,7 @@
       if (!r.ok) { show(errText(r), true); return; }
       return rpc('app_load', { p_name: name, p_pin: pin }).then(function (l) {
         if (!l.ok) { show(errText(l), true); return; }
-        st = { name: name, pin: pin, base: 0 };   // 처음엔 0: 서버에 데이터가 있으면 첫 저장 때 충돌 안내가 뜸
+        clearSnap(); st = { name: name, pin: pin, base: 0 };   // 처음엔 0: 서버에 데이터가 있으면 첫 저장 때 충돌 안내가 뜸
         writeSt(); label();
         show(isReg ? '가입했어요! 이제 저장할 수 있어요.' : (l.version > 0 ? '로그인했어요. 서버에 저장된 데이터가 있어요(버전 ' + l.version + '). 불러오거나 덮어쓸 수 있어요.' : '로그인했어요.'));
       });
@@ -191,8 +228,9 @@
 
   function doSave(force) {
     busy(true);
-    rpc('app_save', { p_name: st.name, p_pin: st.pin, p_data: collect(), p_base: st.base || 0, p_force: !!force }).then(function (r) {
-      if (r.ok) { st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); show('서버에 저장했어요. (버전 ' + r.version + ')'); return; }
+    var payload = collect();
+    rpc('app_save', { p_name: st.name, p_pin: st.pin, p_data: payload, p_base: st.base || 0, p_force: !!force }).then(function (r) {
+      if (r.ok) { writeSnap(payload); st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); show('서버에 저장했어요. (버전 ' + r.version + ')'); return; }
       if (r.error === 'conflict') { conflict(r.version); return; }
       show(errText(r), true);
     });
@@ -213,7 +251,7 @@
       if (!r.ok) { show(errText(r), true); return; }
       if (!r.data) { show('서버에 저장된 데이터가 아직 없어요.', true); return; }
       if (!confirm('이 폰의 데이터가 서버 데이터(버전 ' + r.version + ')로 바뀌어요. 계속할까요?')) { show(''); return; }
-      apply(r.data); st.base = r.version; st.at = now(); st.atMs = Date.now(); st.edited = 0; writeSt();
+      apply(r.data); writeSnap(r.data); st.base = r.version; st.at = now(); st.atMs = Date.now(); st.edited = 0; writeSt();
       location.reload();
     });
   }
