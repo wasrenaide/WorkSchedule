@@ -222,7 +222,9 @@ h1{font-size:17px}
 @media (min-width:600px){.calbar{padding:10px 16px;font-size:17px}.calbar small{font-size:14px}}
 </style>
 <style>.app{padding-top:calc(env(safe-area-inset-top,0px) + 6px)}
-@media (display-mode:standalone){.app{padding-top:max(calc(env(safe-area-inset-top,0px) + 6px),52px)}}</style>
+@media (display-mode:standalone){.app{padding-top:max(calc(env(safe-area-inset-top,0px) + 6px),52px)}}
+/* 표시 안 한 운동/회식·약속 칸은 빈칸(색·글자 없음). 눌러서 켜고 끔 */
+.cell .ex[data-s=off],.warnex .cell:not(.past) .ex[data-s=off]{background:transparent;color:transparent;border-top-color:transparent;font-weight:400}</style>
 </head>
 <body>
 <main class="app">
@@ -266,7 +268,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.2.1</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.2.2</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
