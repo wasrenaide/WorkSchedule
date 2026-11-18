@@ -16,7 +16,9 @@
   css.textContent =
     '#setBack{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}' +
     '#setBox{width:100%;max-width:520px;max-height:88vh;overflow:auto;background:var(--surface);color:var(--fg);border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box}' +
-    '#setBox h2{margin:0 0 6px;font-size:17px}' +
+    '#setBox h2{margin:0;font-size:17px}' +
+    '#setBox .top{position:sticky;top:-16px;z-index:3;display:flex;align-items:center;justify-content:space-between;margin:-16px -16px 8px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--line)}' +
+    '#setBox .top button{font:inherit;font-size:14px;font-weight:700;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}' +
     '#setBox .it{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}' +
     '#setBox .it .t{flex:1}#setBox .it b{font-size:16px}#setBox .it small{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:2px}' +
     '#setBox .it.dis{opacity:.4}' +
@@ -146,7 +148,7 @@
   function build() {
     var bx0 = document.getElementById('setBox'), prevTop = bx0 ? bx0.scrollTop : 0;
     var o = read();
-    var h = '<div id="setBox"><h2>설정</h2>';
+    var h = '<div id="setBox"><div class="top"><h2>설정</h2><button type="button" id="setClose2">닫기</button></div>';
     ITEMS.forEach(function (it) {
       var dis = it.needs && !on(o, it.needs);
       h += '<div class="it' + (dis ? ' dis' : '') + '"><div class="t"><b>' + it.name + '</b><small>' + it.desc + '</small></div>' +
@@ -169,6 +171,7 @@
     back.innerHTML = h;
     var bx1 = document.getElementById('setBox'); if (bx1) bx1.scrollTop = prevTop;
     document.getElementById('setClose').addEventListener('click', close);
+    document.getElementById('setClose2').addEventListener('click', close);   // 맨 위 닫기(스크롤해도 위에 붙어 있음)
     document.getElementById('updBtn').addEventListener('click', checkUpdate);
     Array.prototype.forEach.call(back.querySelectorAll('.pref select'), function (sl) {
       sl.addEventListener('change', function () {
