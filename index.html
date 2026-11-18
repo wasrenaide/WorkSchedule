@@ -266,12 +266,12 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.2.0</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.2.1</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
     · ▲ 올림 / ▼ 내림 버튼으로 누르는 방향(숫자, 운동 칸)을 바꿔요.<br>
-    · 운동 칸(평일, 휴일이 아닌 토요일): 운동함 → 회식 → 운동안함(토요일은 회식 없이 운동함 ↔ 운동안함). 회식은 8시간 고정, 운동 횟수에 안 세요. 운동일은 최대 12시간.<br>
+    · 운동 칸(평일, 휴일이 아닌 토요일): 운동함 → 회식/약속 → 운동안함(토요일은 회식/약속 없이 운동함 ↔ 운동안함). 회식/약속은 8시간 고정, 운동 횟수에 안 세요. 운동일은 최대 12시간.<br>
     · 연차·교육: 켜고 평일을 누르면 연차 → 교육(8시간) → 해제. 주말·공휴일은 없어요.<br>
     · 수기입력: 돌림판으로 직접 고르고, 휴무·쉼·자동으로 되돌릴 때도 써요.<br>
     · 자동 시간은 기본 11시간(운동일 10). 넘치면 말일부터 줄이고, 모자라면 오늘 이후 가까운 날부터 13시간(운동일 12)으로 올려요.<br>
@@ -363,9 +363,12 @@ h1{font-size:17px}
   }
   function fmtD(m){var v=Math.round(m/6)/10;return v%1===0?String(v):v.toFixed(1)}   // 분 → 소수 시간(10:30 → 10.5)
   function monthDays(){var n=new Date(vy,vm+1,0).getDate(),a=[];for(var i=1;i<=n;i++){var d=new Date(vy,vm,i);a.push({id:idOf(d),n:i,dow:d.getDay(),we:d.getDay()===0||d.getDay()===6})}return a}
-  var APPSET=(function(){try{var o=JSON.parse(localStorage.getItem('app-settings-v1'));return o&&typeof o==='object'?o:{}}catch(e){return {}}})();   // 앱 설정: ex(운동) / dine(회식) / satEx(토요일 운동), false면 끔. 웹에는 없음 → 모두 켜짐
+  var APPSET=(function(){try{var o=JSON.parse(localStorage.getItem('app-settings-v1'));return o&&typeof o==='object'?o:{}}catch(e){return {}}})();   // 앱 설정: ex(운동) / dine(회식·약속), false면 끔. 토요일 운동은 운동에 포함(운동이 켜져 있으면 휴일 아닌 토요일에도 열림). 웹에는 없음 → 모두 켜짐
   function exOn(){return APPSET.ex!==false}
-  function exOk(d){if(!exOn())return false;return !d.we||(d.dow===6&&!HOL[d.id]&&APPSET.satEx!==false)}   // 운동 칸이 열리는 날: 평일(공휴일 포함)과 휴일이 아닌 토요일
+  function dineOn(){return APPSET.dine!==false}
+  function exOk(d){if(!exOn())return false;return !d.we||(d.dow===6&&!HOL[d.id])}
+  function dineOk(d){return dineOn()&&!d.we}   // 회식/약속은 평일만(운동과 따로 켜고 끔)
+  function slotOk(d){return exOk(d)||dineOk(d)}   // 날짜 칸 아래 버튼(운동 또는 회식/약속)이 있는 날   // 운동 칸이 열리는 날: 평일(공휴일 포함)과 휴일이 아닌 토요일
   function isHrs(c){return c&&c!=='off'&&c!=='leave'}
   function baseOf(c){return c==='edu'?8:parseInt(c,10)}
 
@@ -456,10 +459,10 @@ h1{font-size:17px}
 
   // 운동 칸: 3단계 on(운동함) / dine(회식) / off(운동안함)
   function exBtn(st,id,disabled,done){
-    var on=st==='on',label=st==='dine'?'회식':(on&&done?'운동✓':'운동');
+    var on=st==='on',label=(st==='dine'||!exOn())?'회식/약속':(on&&done?'운동✓':'운동');   // 운동을 끈 경우 표시 전 칸도 '회식/약속'
     return '<button type="button" class="ex'+(on&&done?' done':'')+'" data-s="'+st+'"'+((disabled||ro())?' disabled':' data-ex="'+id+'"')+' aria-pressed="'+on+'">'+label+'</button>';
   }
-  function exState(v,rowEx){return rowEx||v===true?'on':v==='dine'?'dine':'off'}
+  function exState(v,rowEx){return exOn()&&(rowEx||v===true)?'on':v==='dine'?'dine':'off'}
 
   // 실제 근무 분: 입력값 우선, 없으면 교육일은 8시간
   function dayMin(c,id){
@@ -643,11 +646,11 @@ h1{font-size:17px}
         if(pa>0){
           mcls+=' hrs';style=' style="--h:'+hue(pa/60)+'"';
           inner=dn+splitHtml(pa);
-          if(exOk(d)&&m!=='edu')exbtn=exBtn(exState(runEx(d.id),false),d.id,true,true);
+          if(slotOk(d)&&m!=='edu')exbtn=exBtn(exState(runEx(d.id),false),d.id,true,true);
         }else if(x){
           mcls+=' hrs';style=' style="--h:'+hue(x.h)+'"';
           inner=dn+splitHtml(x.h*60);
-          if(exOk(d)&&!x.edu){
+          if(slotOk(d)&&!x.edu){
             exbtn=exBtn(exState(c.x[d.id],x.ex),d.id,runMode,false);
           }
         }else if(!d.we&&r.error&&!HOL[d.id]&&m!=='off'&&m!=='leave'){cls+=' rest';inner=dn+'?'}
@@ -671,10 +674,12 @@ h1{font-size:17px}
     var c=cur(),ex=e.target.closest('button[data-ex]');
     if(ex){
       var xid=ex.dataset.ex,st=ex.dataset.s;
-      // 올림: 운동함 → 회식 → 운동안함 → 운동함 / 내림: 운동함 → 운동안함 → 회식 → 운동함
-      var tg=dirDown?{on:'off',off:'dine',dine:'on'}[st]:{on:'dine',dine:'off',off:'on'}[st];
-      if(new Date(xid+'T00:00:00').getDay()===6)tg={on:'off',off:'on',dine:'on'}[st];   // 토요일은 회식 없음: 운동함 ↔ 운동안함
-      if(APPSET.dine===false)tg={on:'off',off:'on',dine:'off'}[st];   // 앱 설정에서 회식을 끈 경우
+      // 올림: 운동함 → 회식/약속 → 안함 → 운동함 / 내림은 반대. 운동·회식/약속은 설정에서 따로 켜고 끄고, 토요일은 운동만
+      var dw=new Date(xid+'T00:00:00').getDay(),we2=dw===0||dw===6,lst=[];
+      if(exOn()&&(!we2||(dw===6&&!HOL[xid])))lst.push('on');
+      if(dineOn()&&!we2)lst.push('dine');
+      lst.push('off');
+      var li=lst.indexOf(st),tg=li<0?'off':lst[(li+(dirDown?-1:1)+lst.length)%lst.length];
       if(runMode){c.ax[xid]=(tg==='on')?true:(tg==='dine'?'dine':false)}   // 운동안함도 직접 선택한 값으로 저장(계획 기본값이 다시 덮지 않게)
       else{
         // 처음 운동을 만지면 지금의 자동 배정 7일을 그대로 '내 선택'으로 굳히고, 그 뒤로는 자동으로 더하거나 옮기지 않음

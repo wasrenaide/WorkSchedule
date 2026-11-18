@@ -1,12 +1,11 @@
-/* 월 근무 앱 - 설정 화면 (운동 / 회식 / 토요일 운동 켜고 끄기).
-   저장 위치: localStorage 'app-settings-v1'  ({ex:false, dine:false, satEx:false} 중 끈 것만 false)
+/* 월 근무 앱 - 설정 화면 (운동 / 회식·약속 켜고 끄기).
+   저장 위치: localStorage 'app-settings-v1'  ({ex:false, dine:false} 중 끈 것만 false)
    plan.html 이 시작할 때 읽으므로, 바꾸면 화면을 다시 불러온다. 서버 저장/불러오기(cloud.js)에도 같이 담긴다. */
 (function () {
   var KEY = 'app-settings-v1';
   var ITEMS = [
     { k: 'ex', name: '운동', desc: '끄면 운동 칸과 "운동 n/7" 표시가 모두 사라지고, 운동 횟수 조건 없이 근무시간만 배분해요.' },
-    { k: 'dine', name: '회식', desc: '끄면 운동 칸에서 회식 단계가 빠져요(운동함 ↔ 운동안함만).', needs: 'ex' },
-    { k: 'satEx', name: '토요일 운동', desc: '끄면 휴일이 아닌 토요일에도 운동 칸을 열지 않아요.', needs: 'ex' }
+    { k: 'dine', name: '회식/약속', desc: '운동과 따로 켜고 끌 수 있어요. 끄면 회식/약속 단계가 빠지고, 켜면 평일 칸에서 눌러 표시해요(그날 8시간 고정).' }
   ];
 
   function read() { try { var o = JSON.parse(localStorage.getItem(KEY)); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
