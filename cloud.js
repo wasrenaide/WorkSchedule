@@ -4,7 +4,7 @@
   var API = 'https://iqzswnpfxdjsnxlvisxf.supabase.co/rest/v1/rpc/';
   var KEY = 'sb_publishable_xL6Ih_CqeQ0PzfTJvJxMew_BtSMd68T';   // 공개 키(앱에 들어가도 되는 값)
   var SK = 'cloud-v1';
-  var DATA_KEYS = { inputs: 'plan-inputs-v4', limit: 'plan-limit-v1', calc: 'calc-state-v1' };
+  var DATA_KEYS = { inputs: 'plan-inputs-v4', limit: 'plan-limit-v1', calc: 'calc-state-v1', settings: 'app-settings-v1' };
   var ERR = {
     bad_login: '이름 또는 PIN이 맞지 않아요.',
     locked: '5번 틀려서 10분간 잠겼어요. 잠시 뒤에 다시 해주세요.',
@@ -40,7 +40,7 @@
   function apply(o) {
     quiet = true;
     Object.keys(DATA_KEYS).forEach(function (k) {
-      try { if (o && o[k] != null) localStorage.setItem(DATA_KEYS[k], o[k]); else localStorage.removeItem(DATA_KEYS[k]); } catch (e) {}
+      try { if (o && o[k] != null) localStorage.setItem(DATA_KEYS[k], o[k]); else if (k !== 'settings') localStorage.removeItem(DATA_KEYS[k]); } catch (e) {}   // 설정은 서버에 없으면(예전 저장본) 이 폰 설정을 그대로 둠
     });
     quiet = false;
   }
@@ -129,7 +129,7 @@
   var quiet = false, origSet = Storage.prototype.setItem;
   Storage.prototype.setItem = function (k) {
     origSet.apply(this, arguments);
-    if (!quiet && this === window.localStorage && k === DATA_KEYS.inputs && st.name) { st.edited = Date.now(); writeSt(); }
+    if (!quiet && this === window.localStorage && (k === DATA_KEYS.inputs || k === DATA_KEYS.settings) && st.name) { st.edited = Date.now(); writeSt(); }
   };
   label();
   document.getElementById('cloudOpen').addEventListener('click', function () { show(''); });
