@@ -290,7 +290,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.5.0</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.5.1</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
@@ -520,6 +520,13 @@ h1{font-size:17px}
     csSave();lastDed=null;
   }
 
+  // 앱 계산 모드: 출근만 / 퇴근만 따로 초기화
+  function calcInReset(){cs.in=480;csSave();lastDed=null;renderCalc()}   // 출근 → 08:00
+  function calcOutReset(){   // 퇴근 예정 → 오늘 계획 시간에 맞는 시각(현재 출근·제외시간 반영), 계획이 없으면 18:00
+    var P=todayPlanHours();
+    cs.out=(P&&P>0)?(cs.in+stayFor(Math.round(P*60),cs.ex))%1440:1080;
+    csSave();lastDed=null;renderCalc();
+  }
   // 계산 모드: 체류시간 기준 자동 차감(4:30 이상 30분, 9:00 이상 60분)은 제외시간과 무관, 제외시간은 그 위에 추가로 뺌
   function hm(m){m=((m%1440)+1440)%1440;return pad(Math.floor(m/60))+':'+pad(m%60)}
   function renderCalc(){
@@ -573,10 +580,11 @@ h1{font-size:17px}
     $('leaveMode').disabled=calcMode;
     $('leaveMode').hidden=$('handMode').hidden=$('dirBtn').hidden=$('resetEdits').hidden=ro();
     if(ro())setSync('보기 전용');else if($('sync').textContent==='보기 전용')setSync('')
-    $('dirBtn').textContent=dirDown?'▼ 내림':'▲ 올림';$('dirBtn').setAttribute('aria-pressed',dirDown);$('dirBtn').disabled=calcMode;
+    $('dirBtn').textContent=dirDown?'▼ 내림':'▲ 올림';$('dirBtn').setAttribute('aria-pressed',dirDown);$('dirBtn').disabled=calcMode||runMode;   // 실행 모드는 시간을 돌림판으로 입력하므로 올림/내림 의미 없음
     if(calcMode){
       $('runMode').textContent='계산 모드';$('runMode').setAttribute('aria-pressed',true);
       $('handMode').disabled=true;
+      if(FILLUI){$('resetEdits').textContent='출근 초기화';$('resetEdits').disabled=false;$('resetMonth').textContent='퇴근 초기화';$('resetMonth').hidden=ro()}   // 앱 계산 모드: 되돌리기→출근 초기화, 월 초기화→퇴근 초기화
       var ce=document.querySelector('.calc');ce.classList.remove('under','over','lowmin');document.body.classList.remove('lowminb');if($('basisTog'))$('basisTog').hidden=true;   // 계산 모드: 기준 토글·최소 경고 끔
       if(cs.date!==idOf(new Date()))calcDefault();
       var cvh=lastCalH;if(cvh)$('calcView').style.minHeight=cvh+'px';
@@ -611,7 +619,7 @@ h1{font-size:17px}
         if(d.id<todayId){act+=m}
         else if(d.id===todayId){if(m>0)act+=m;else planLeft+=pm}
         else planLeft+=pm;
-        if(d.id<=todayId&&m>0&&runEx(d.id)===true)exN++;
+        if(d.id<=todayId&&(m>0||(d.id===todayId&&c.ax[d.id]===true))&&runEx(d.id)===true)exN++;
       });
       warnEx=exOn()&&exN<EX_NEED;
       var projected=act+planLeft,diff=projected-(minB?mi0.h:cap)*60,sg=diff>0?'+':diff<0?'−':'±';
@@ -690,7 +698,8 @@ h1{font-size:17px}
           mcls+=' hrs';style=' style="--h:'+hue(x.h)+'"';
           inner=dn+splitHtml(x.h*60);
           if(slotOk(d)&&!x.edu){
-            exbtn=exBtn(exState(c.x[d.id],x.ex),d.id,runMode,false);
+            var todayRun=runMode&&d.id===todayId;   // 실행 모드의 오늘: 시간 기록 전에도 운동 여부를 입력할 수 있음
+            exbtn=exBtn(todayRun&&c.ax[d.id]!==undefined?exState(c.ax[d.id],false):exState(c.x[d.id],x.ex),d.id,runMode&&!todayRun,false);
           }
         }else if(!d.we&&r.error&&!HOL[d.id]&&m!=='off'&&m!=='leave'){cls+=' rest';inner=dn+'?'}
         else{cls+=' rest';if(kind)mcls+=' '+kind+'bg';inner=dn+restText}
@@ -930,8 +939,8 @@ h1{font-size:17px}
   }
   function clearFuture(c,fields){var t=idOf(new Date());fields.forEach(function(f){var o=c[f]||{},n={};Object.keys(o).forEach(function(i){if(i<t)n[i]=o[i]});c[f]=n})}
   if(FILLUI){
-    $('resetEdits').addEventListener('click',function(){if(calcMode){calcDefault();renderCalc();return}doUndo()});   // 앱: 수정 지우기 → 한 단계 되돌리기
-    $('resetMonth').addEventListener('click',function(){openFillSheet('reset')});                                    // 앱: 월 초기화 → 최소/최대 선택 팝업
+    $('resetEdits').addEventListener('click',function(){if(calcMode){calcInReset();return}doUndo()});   // 앱: 수정 지우기 → 한 단계 되돌리기
+    $('resetMonth').addEventListener('click',function(){if(calcMode){calcOutReset();return}openFillSheet('reset')});                                    // 앱: 월 초기화 → 최소/최대 선택 팝업
   }else{
     twoStep('edits',$('resetEdits'),'직접수정 지우기',function(c){freezePast();clearFuture(c,['d','x','lk','sc']);delete c.xf});
     twoStep('month',$('resetMonth'),'이번달 초기화',function(c){freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf});

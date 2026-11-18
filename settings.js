@@ -100,11 +100,14 @@
     h += '<p>바꾸면 화면이 다시 불러와져요. 이미 입력한 근무시간은 지워지지 않아요. 설정은 서버에 저장할 때 같이 저장돼요.</p>' +
       '<div class="upd"><b>앱 업데이트</b><span class="m" id="updMsg">지금 쓰는 버전 ' + curVer() + '</span>' +
       '<button type="button" id="updBtn">최신 버전 확인하기</button></div>' +
+      '<div class="upd"><b>관리자</b><span class="m">사용자 관리와 월별 최소 근무시간을 입력하는 곳이에요. 관리자 비밀번호가 있어야 들어갈 수 있어요.</span>' +
+      '<button type="button" id="admBtn">관리자 페이지 열기</button></div>' +
       '<button type="button" class="close" id="setClose">닫기</button></div>';
     back.innerHTML = h;
     document.body.appendChild(back);
     document.getElementById('setClose').addEventListener('click', close);
     document.getElementById('updBtn').addEventListener('click', checkUpdate);
+    document.getElementById('admBtn').addEventListener('click', function () { location.href = 'admin.html'; });   // 같은 창에서 열고, 관리자 페이지의 '← 앱으로'로 돌아옴
     Array.prototype.forEach.call(back.querySelectorAll('.sw'), function (b) {
       b.addEventListener('click', function () {
         var cur = read(), k = b.getAttribute('data-k');
