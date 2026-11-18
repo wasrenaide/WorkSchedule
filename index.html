@@ -124,6 +124,7 @@ body.lowminb{--bg:#ffefd9}
 .basis button:first-of-type{border-radius:999px 0 0 999px}
 .basis button:last-of-type{border-radius:0 999px 999px 0;border-left:0}
 .basis button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.cell.run7{box-shadow:inset 0 0 0 2px hsl(0 80% 50%)}
 .card.calc{position:relative}
 #fillBox{position:absolute;left:8px;right:8px;top:34px;bottom:60px;display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
 #fillBox[hidden]{display:none}
@@ -132,6 +133,13 @@ body.lowminb{--bg:#ffefd9}
 .fillcard button{margin-top:6px;font:inherit;font-size:15px;font-weight:700;padding:11px 22px;border-radius:999px;border:0;background:var(--accent);color:var(--on-accent)}
 #cal.fillneed{opacity:.2;pointer-events:none}
 .fillneedb .sum{opacity:.3}
+.wkbar{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.wkbar small{color:var(--muted);font-size:12px;line-height:1.45}
+.wkseg{display:flex}
+.wkseg button{flex:1;font:inherit;font-size:14px;padding:9px 6px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+.wkseg button:first-child{border-radius:10px 0 0 10px}.wkseg button:last-child{border-radius:0 10px 10px 0;border-left:0}
+.wkseg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.fopt.fall{border-color:hsl(0 70% 55%/.6)}.fopt.fall b{color:hsl(0 70% 45%)}
 .fopt{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;font:inherit;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
 .fopt b{font-size:15px}.fopt small{color:var(--muted);font-size:12px;line-height:1.45}
 .sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
@@ -290,7 +298,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.6</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.9</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -302,7 +310,7 @@ h1{font-size:17px}
     · 처음 여는 달은 달력이 흐려지고 <b>이 달 설정하기</b>가 떠요. 둘 중 하나를 골라요.<br>
     · <b>최소로 시작</b>: 평일 8시간. 다른 날을 바꿔도 나머지는 그대로예요.<br>
     · <b>최대로 채우기</b>: 월 최대 시간에 맞춰 자동으로 나눠요. 하루 길이는 근무시간 + 운동 1시간으로 보고, 긴 날을 월초에 모아요.<br>
-    · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요.<br><br>
+    · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말에 근무를 넣어 뒀다면 <b>주말 근무 유지</b> / <b>주말도 초기화</b>를 먼저 골라요. <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
     <b>실행</b> 오늘까지의 실제 기록<br>
     · 지난 날과 오늘은 눌러서 시·분을 고쳐요. 오늘은 시간을 쓰기 전에도 운동 칸을 누를 수 있어요.<br>
     · 요약에 예상 합계와 차이가 나와요. 올림/내림은 쓰지 않아요.<br><br>
@@ -445,6 +453,7 @@ h1{font-size:17px}
     for(var i=1;i<=6;i++){
       var dt=new Date(vy,vm,1-i),id=idOf(dt),rec=all[dt.getFullYear()+'-'+pad(dt.getMonth()+1)];
       var worked=(rec&&rec.a&&rec.a[id]>0)||HISTORY.indexOf(id)>=0;
+      if(!worked&&FILLUI&&id>=idOf(new Date()))worked=isWorkDay(id);   // 앱: 아직 안 지난 날은 근무표(계획) 기준으로도 이어지는 근무로 셈
       if(worked)n++;else break;
     }
     return n;
@@ -458,9 +467,14 @@ h1{font-size:17px}
       worked[d.id]=d.we?!!isHrs(m):(isHrs(m)?true:(m==='off'||m==='leave'||(!m&&HOL[d.id]))?false:true);
       if(isHrs(m)){var e=exOk(d)&&m!=='edu'&&exf[d.id]===true;mh[d.id]={base:baseOf(m),ex:e,h:(e&&baseOf(m)>EX_MAX?EX_MAX:baseOf(m)),edu:m==='edu'}}   // 직접 고른 날은 운동과 상관없이 고른 시간 그대로
     });
+    var runIds=[];
     for(i=0;i<days.length&&!err;i++){
       run=worked[days[i].id]?run+1:0;
-      if(run>=7)err=days[i].n+'일에 7일 연속 근무가 돼요. 그 주 근무를 하루 줄여 주세요.';
+      if(run>=7){
+        var sd=new Date(vy,vm,1+i-6),fromPrev=(i-6)<0;   // 7일 연속이 시작된 날(지난달일 수 있음)
+        err=(FILLUI?(sd.getMonth()+1)+'월 '+sd.getDate()+'일부터 '+(fromPrev?(vm+1)+'월 ':'')+days[i].n+'일까지 7일 연속 근무예요'+(fromPrev?' (지난달 포함)':'')+'. 중간에 쉬는 날을 하루 넣어 주세요.':days[i].n+'일에 7일 연속 근무가 돼요. 그 주 근무를 하루 줄여 주세요.');
+        for(var q=Math.max(0,i-6);q<=i;q++)runIds.push(days[q].id);
+      }
     }
     var F=0,forced=0,auto=[],rows={};
     days.forEach(function(d){
@@ -471,7 +485,7 @@ h1{font-size:17px}
     function result(){
       var total=0,exN=0,n=0;
       Object.keys(rows).forEach(function(k){total+=rows[k].h;n++;if(rows[k].ex)exN++});
-      return {rows:rows,total:total,exN:exN,n:n,error:err};
+      return {rows:rows,total:total,exN:exN,n:n,error:err,runIds:runIds};
     }
     if(!N||err)return result();
     var cand=[];auto.forEach(function(d,k){if(exf[d.id]===undefined)cand.push(k)});
@@ -653,6 +667,7 @@ h1{font-size:17px}
     }
     // 계획 모드에서 실제 기록으로 치는 날: 지난 날(기록·교육), 오늘은 실제 기록이 있을 때만
     function actMin(d){return d.id<todayId?dayMin(c,d.id):(d.id===todayId&&c.a[d.id]!=null?c.a[d.id]:0)}
+    var runSet={};(r.runIds||[]).forEach(function(id){runSet[id]=true});
     var minB=FILLUI&&basis()==='min',mi0=FILLUI?minInfo(ds,c):null;   // 요약 기준이 '최소'인지, 이 달 최소 근무시간
     if(runMode){
       // 지난 실제(오늘 기록 포함) + 앞으로 계획(오늘 기록이 없으면 오늘 계획 포함) = 예상, 월 최대와 비교
@@ -668,7 +683,7 @@ h1{font-size:17px}
       var projected=act+planLeft,diff=projected-(minB?mi0.h:cap)*60,sg=diff>0?'+':diff<0?'−':'±';
       $('stats').innerHTML=
         '<div><dt>예상</dt><dd>'+fmtHM(projected)+'</dd></div>'+
-        '<div'+(minB?(diff<0?' class="over"':diff>0?' class="under"':''):(diff>0?' class="over"':''))+'><dt>'+(minB?'최소 대비':'차이')+'</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
+        '<div'+(minB?(diff<0?' class="over"':diff>0?' class="under"':''):(diff>0?' class="over"':(FILLUI&&diff<0?' class="under"':'')))+'><dt>'+(minB?'최소 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
         (exOn()?'<div class="'+(exN<EX_NEED?'bad':'done')+'"><dt>운동</dt><dd>'+exN+'/'+EX_NEED+(exN>=EX_NEED?' ✓':'')+'</dd></div>':'');
       // 계획 모드와 같은 안내: 넘치면 빨강, 모자라면 초록(더 근무 가능)
       if(diff>0)msg='최대보다 '+fmtHM(diff)+' 많아요.';
@@ -689,7 +704,7 @@ h1{font-size:17px}
       var pdiff=tm-(minB?mi0.h:cap)*60,psg=pdiff>0?'+':pdiff<0?'−':'±';
       $('stats').innerHTML=
         '<div><dt>합계</dt><dd>'+fmtD(tm)+'</dd></div>'+
-        '<div'+(minB?(pdiff<0?' class="over"':pdiff>0?' class="under"':''):(pdiff>0?' class="over"':pdiff<0?' class="under"':''))+'><dt>'+(minB?'최소 대비':'차이')+'</dt><dd>'+psg+fmtD(Math.abs(pdiff))+'</dd></div>'+
+        '<div'+(minB?(pdiff<0?' class="over"':pdiff>0?' class="under"':''):(pdiff>0?' class="over"':pdiff<0?' class="under"':''))+'><dt>'+(minB?'최소 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+psg+fmtD(Math.abs(pdiff))+'</dd></div>'+
         (exOn()?'<div'+(warnEx?' class="bad"':'')+'><dt>운동</dt><dd>'+exShown+'/'+EX_NEED+'</dd></div>':'');
       // 빨간 글자의 숫자는 위쪽 요약(합계·차이)과 같은 값(tm: 지난 날 실제 기록 반영)으로 계산
       if(r.error&&r.error.indexOf('연속')>=0)msg=r.error;
@@ -698,14 +713,30 @@ h1{font-size:17px}
         else if(pdiff<0){msg=fmtHM(-pdiff)+' 더 근무할 수 있어요.';okMsg=true}   // 모자람은 경고가 아니라 여유: 초록
       }
     }
-    var lowMin=false;
+    var lowMin=false,cross=null;
+    if(FILLUI&&!r.error){   // 이번 달 끝에서 다음 달 초까지 이어져 7일 연속이 되는 경우(다음 달은 화면에 안 보임)
+      var tail=0,q2,dd2;
+      for(q2=ds.length-1;q2>=0;q2--){dd2=ds[q2];if(r.rows[dd2.id]||actMin(dd2)>0)tail++;else break}
+      if(tail>0){
+        var lead=0,i2,nd,nid;
+        for(i2=1;i2<=6;i2++){nd=new Date(vy,vm+1,i2);nid=idOf(nd);if(nid<todayId)break;if(isWorkDay(nid))lead++;else break}
+        if(tail+lead>=7){cross='이번 달 끝부터 다음 달 '+(7-tail>0?(7-tail)+'일':lead+'일')+'까지 7일 연속 근무가 돼요 (다음 달 포함). 중간에 쉬는 날을 하루 넣어 주세요.';for(q2=ds.length-tail;q2<ds.length;q2++)runSet[ds[q2].id]=true}
+      }
+    }
     if(FILLUI){
       var tot60=runMode?projected:tm,over60=tot60-cap*60;
       lowMin=!calcMode&&key()>=idOf(new Date()).slice(0,7)&&!monthNeedsSetup()&&tot60<mi0.h*60;   // 이번 달 이후, 설정한 달만
-      if(!(r.error&&r.error.indexOf('연속')>=0)){
-        if(over60>0){msg='최대보다 '+fmtHM(over60)+' 많아요.';okMsg=false}
+      if(r.error&&r.error.indexOf('연속')>=0){msg='⚠ '+r.error;okMsg=false}   // 7일 연속 근무 경고(실행 모드 포함)
+      else if(cross){msg='⚠ '+cross;okMsg=false}
+      else{
+        if(!minB){   // 최대 기준: 최대 대비 ±시간. 최대를 넘으면(+) 빨강, 모자라면(−) 초록. 최소 미달은 주황 배경으로 알려줌
+          if(over60>0){msg='최대 대비 +'+fmtHM(over60)+' (최대를 넘었어요)';okMsg=false}
+          else if(over60<0){msg='최대 대비 −'+fmtHM(-over60);okMsg=true}
+          else msg=''
+        }
+        else if(over60>0){msg='최대보다 '+fmtHM(over60)+' 많아요.';okMsg=false}
         else if(lowMin){msg='최소보다 '+fmtHM(mi0.h*60-tot60)+' 모자라요.';okMsg=false}
-        else if(minB){var dm=tot60-mi0.h*60;msg=dm>0?'최소보다 '+fmtHM(dm)+' 더 했어요.':'';okMsg=true}
+        else{var dm=tot60-mi0.h*60;msg=dm>0?'최소보다 '+fmtHM(dm)+' 더 했어요.':'';okMsg=true}
       }
     }
     document.querySelector('.sum').classList.toggle('run',runMode);
@@ -719,6 +750,7 @@ h1{font-size:17px}
       var holSat=d.dow===6&&!!HOL[d.id],kind=(d.dow===0||HOL[d.id])?'red':d.dow===6?'sat':'';   // 휴일인 토요일은 일요일처럼 빨강
       var past=runMode&&d.id<todayId, isToday=d.id===todayId;
       if(isToday)cls+=' todaycell';
+      if(runSet[d.id])cls+=' run7';   // 7일 연속 근무에 걸린 날
       if(snapWork&&d.id>=todayId&&d.id>=snapWork.from&&d.id<=snapWork.to&&!!snapWork.set[d.id]!==isWorkDay(d.id))cls+=' diffcell';
       var dn='<span class="drow"><small class="d '+kind+'">'+d.n+'</small>'+(m==='edu'?'<small class="tag">교육</small>':(c.sc&&c.sc[d.id]&&/^[0-9]+$/.test(m||'')?'<small class="tag">일정</small>':''))+(d.n===fdNum?'<small class="fd">패데</small>':'')+'</span>';
       var restText=(m==='off'?'휴무':m==='leave'?'연차':(HOL[d.id]&&(!d.we||holSat)?'휴일':'–'));
@@ -1104,7 +1136,7 @@ h1{font-size:17px}
     Object.keys(nm).concat(Object.keys(prevMap)).forEach(function(k){
       if(nm[k]!==prevMap[k]&&!(k in m)){m[k]=prevMap[k]===undefined?null:prevMap[k];ch=true}
     });
-    if(ch){undoStack.push({t:Date.now(),m:m});if(undoStack.length>UMAX)undoStack.shift();saveUndo()}
+    if(ch){undoStack.push({t:Date.now(),v:key(),m:m});if(undoStack.length>UMAX)undoStack.shift();saveUndo()}   // v: 그때 보던 달
     prevMap=nm;
   }
   function doUndo(){
@@ -1117,7 +1149,8 @@ h1{font-size:17px}
     saveUndo();
     try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(x){}
     syncPrev();
-    if(first){var p=first.split('-');vy=+p[0];vm=+p[1]-1}   // 바뀐 달로 이동
+    var tv=e.v||(e.m.hasOwnProperty(key())?key():first);   // 되돌린 뒤에는 그 변경을 했을 때 보던 달로 돌아옴(초기화처럼 여러 달이 바뀌어도 보던 달 유지)
+    if(tv){var p=tv.split('-');vy=+p[0];vm=+p[1]-1}
     render();
     setHint('한 단계 되돌렸어요'+(undoStack.length?' (더 되돌릴 수 있는 단계 '+undoStack.length+'개)':' (더 되돌릴 단계가 없어요)'));
   }
@@ -1139,21 +1172,49 @@ h1{font-size:17px}
     }
     box.hidden=!need;$('cal').classList.toggle('fillneed',need);document.body.classList.toggle('fillneedb',need);
   }
+  // 오늘 이후 주말(토·일)에 입력해 둔 근무 날짜들
+  function weekendWork(c){
+    var t=idOf(new Date()),r=[];
+    Object.keys(c.d).forEach(function(id){if(id>=t){var w=new Date(id+'T00:00:00').getDay();if((w===0||w===6)&&/^[0-9]+$/.test(c.d[id]))r.push(id)}});
+    return r.sort();
+  }
+  function c0d(id){var c=cur();return c.d[id]}
   function closeFillSheet(){var e=$('fillSheet');if(e)e.remove()}
   function openFillSheet(kind){
     closeFillSheet();
     var reset=kind==='reset',cap=capOf(monthDays().length),e=document.createElement('div');
+    var wk=reset?weekendWork(cur()):[],keepWk=true;   // wk: 오늘 이후 주말에 입력해 둔 근무(날짜). keepWk: 초기화해도 유지할지
     e.className='sheet';e.id='fillSheet';
     e.innerHTML='<div class="backdrop" id="fillBg"></div><div class="panel" role="dialog" aria-modal="true"><h2>'+(vm+1)+(reset?'월 초기화':'월은 어떻게 시작할까요?')+'</h2>'+
       (reset?'<p class="note" style="text-align:center">오늘부터의 계획과 기록이 지워지고, 아래 방식으로 다시 시작해요. 오늘 이전 기록은 그대로예요. 하고 나서도 ‘↶ 되돌리기’로 한 단계 되돌릴 수 있어요.</p>':'')+
+      (wk.length?'<div class="wkbar"><b>주말 근무가 '+wk.length+'일 있어요</b><small>'+wk.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+') '+c0d(id)+'시간'}).join(', ')+'</small><div class="wkseg"><button type="button" data-w="keep" aria-pressed="true">주말 근무 유지</button><button type="button" data-w="reset" aria-pressed="false">주말도 초기화</button></div><small id="wkHint">주말 근무는 그대로 두고, 평일만 다시 채워요.</small></div>':'')+
       '<button type="button" class="fopt" data-m="min"><b>최소로 시작</b><small>평일 8시간으로 채워요(주 40시간 기준). 다른 날을 고쳐도 나머지 숫자는 자동으로 안 바뀌어요.</small></button>'+
       '<button type="button" class="fopt" data-m="max"><b>최대로 채우기</b><small>월 최대 '+cap+'시간에 맞춰 자동으로 나눠요. 한 날을 고치면 뒤쪽 날짜가 다시 맞춰져요.</small></button>'+
+      (reset?'<button type="button" class="fopt fall" data-m="all"><b>이 달 전부 지우기</b><small>지난 날 기록까지 이 달의 모든 입력을 지우고, 설정 전 상태로 돌아가요. ↶ 되돌리기로 한 단계 되돌릴 수 있어요.</small></button>':'')+
       '<button type="button" class="ghost" id="fillCancel">'+(reset?'취소':'나중에')+'</button></div>';
     document.body.appendChild(e);
     $('fillBg').addEventListener('click',closeFillSheet);$('fillCancel').addEventListener('click',closeFillSheet);
+    [].forEach.call(e.querySelectorAll('.wkseg button'),function(b){b.addEventListener('click',function(){
+      keepWk=b.getAttribute('data-w')==='keep';
+      [].forEach.call(e.querySelectorAll('.wkseg button'),function(x){x.setAttribute('aria-pressed',x===b)});
+      $('wkHint').textContent=keepWk?'주말 근무는 그대로 두고, 평일만 다시 채워요.':'주말 근무도 지우고 처음부터 다시 시작해요.';
+    })});
     [].forEach.call(e.querySelectorAll('.fopt'),function(b){b.addEventListener('click',function(){
+      if(b.getAttribute('data-m')==='all'){   // 이 달 전부 지우기: 한 번 더 확인
+        var pn=e.querySelector('.panel');
+        pn.innerHTML='<h2>'+(vm+1)+'월을 전부 지울까요?</h2><p class="note" style="text-align:center">지난 날의 기록까지 이 달에 입력한 근무시간·운동·기록이 모두 지워지고, 처음 여는 달처럼 설정 전 상태가 돼요. 지운 뒤에도 ‘↶ 되돌리기’로 한 단계 되돌릴 수 있어요.</p>'+
+          '<button type="button" class="fopt fall" id="wipeYes"><b>네, 전부 지우기</b></button><button type="button" class="ghost" id="wipeNo">취소</button>';
+        $('wipeNo').addEventListener('click',closeFillSheet);
+        $('wipeYes').addEventListener('click',function(){delete all[key()];save();closeFillSheet();render()});
+        return;
+      }
       var c=cur();
-      if(reset){freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf}   // 오늘 이전은 지금 값으로 굳힌 뒤 오늘부터 다시
+      if(reset){
+        var keep={d:{},x:{}};
+        if(keepWk)wk.forEach(function(id){keep.d[id]=c.d[id];if(c.x[id]!==undefined)keep.x[id]=c.x[id]});   // 주말 근무 유지 선택: 지우기 전에 따로 보관
+        freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf;   // 오늘 이전은 지금 값으로 굳힌 뒤 오늘부터 다시
+        Object.keys(keep.d).forEach(function(id){c.d[id]=keep.d[id]});Object.keys(keep.x).forEach(function(id){c.x[id]=keep.x[id]});   // 유지할 주말 근무를 되돌려 놓음(고정 시간으로 취급)
+      }
       c.fm=b.getAttribute('data-m');if(c.fm==='max')c.pd=1;else delete c.pd;   // pd: 새 기본 선호 근무시간을 쓰는 달
       save();closeFillSheet();render();
     })});
