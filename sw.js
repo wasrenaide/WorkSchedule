@@ -1,4 +1,4 @@
-const CACHE = 'wolgeunmu-3539e7a7e9';
+const CACHE = 'wolgeunmu-1ffa9f0d29';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './cloud.js', './settings.js'];
 // 설치할 때 브라우저의 HTTP 캐시(GitHub Pages는 10분)를 건너뛰고 서버에서 새로 받는다
 self.addEventListener('install', e => {

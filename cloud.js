@@ -65,16 +65,16 @@
     '#sync.cdirty{color:#e65100!important;font-weight:700!important}' +
     '#cloudOpen.dirty{background:#fff3e0;border-color:#ef6c00;color:#e65100;font-weight:700}' +
     '@media (prefers-color-scheme:dark){#cloudOpen.dirty{background:#3a2610;color:#ffb74d;border-color:#ef6c00}#sync.cdirty{color:#ffb74d!important}}' +
-    '#cloudBar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:none;align-items:center;justify-content:space-between;gap:6px;padding:8px 8px 8px 14px;background:var(--surface);color:var(--fg);border:1px solid #ffd699;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.16);font-size:13px}' +
+    '#cloudBar{display:none;align-items:center;justify-content:space-between;gap:6px;margin:0 0 6px;padding:4px 6px 4px 12px;background:var(--surface);color:var(--fg);border:1px solid #ffd699;border-radius:14px;font-size:13px}' +
     '#cloudBar .t{display:flex;align-items:center;gap:8px;font-weight:600;color:#b45309;min-width:0}' +
     '#cloudBar .t i{flex:none;width:8px;height:8px;border-radius:50%;background:#f59e0b}' +
     '#cloudBar .b{display:flex;align-items:center;gap:2px;flex:none}' +
     '#cloudBar button{font:inherit;font-size:13px;border:0;cursor:pointer}' +
-    '#cloudBar .u{background:transparent;color:var(--muted);padding:8px 10px;border-radius:999px}' +
-    '#cloudBar .s{background:#f59e0b;color:#fff;font-weight:700;padding:8px 18px;border-radius:999px}' +
+    '#cloudBar .u{background:transparent;color:var(--muted);padding:6px 10px;border-radius:999px}' +
+    '#cloudBar .s{background:#f59e0b;color:#fff;font-weight:700;padding:6px 16px;border-radius:999px}' +
     '#cloudBar button:disabled{opacity:.6}' +
     '@media (prefers-color-scheme:dark){#cloudBar{border-color:#7a5418}#cloudBar .t{color:#ffcb7a}#cloudBar .s{background:#d98a0a}}' +
-    'body.cbar #cloudBar{display:flex}body.cbar{padding-bottom:84px}';
+    'body.cbar #cloudBar{display:flex}';
   document.head.appendChild(css);
 
   var row = document.createElement('div');
@@ -85,7 +85,9 @@
   var bar = document.createElement('div');
   bar.id = 'cloudBar';
   bar.innerHTML = '<span class="t"><i></i>저장 안 된 변경이 있어요</span><span class="b"><button type="button" class="u" id="cloudBarUndo">되돌리기</button><button type="button" class="s" id="cloudBarBtn">저장</button></span>';
-  document.body.appendChild(bar);
+  var hd = document.querySelector('header');   // 맨 위 년월 줄 바로 아래에 끼워 넣음(없으면 맨 위 고정)
+  if (hd && hd.parentNode) hd.parentNode.insertBefore(bar, hd.nextSibling);
+  else { bar.style.cssText = 'position:fixed;top:8px;left:12px;right:12px;z-index:40'; document.body.appendChild(bar); }
   document.getElementById('cloudBarBtn').addEventListener('click', quickSave);
   document.getElementById('cloudBarUndo').addEventListener('click', askUndo);
   function quickSave() {
