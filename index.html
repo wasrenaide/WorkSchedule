@@ -126,6 +126,9 @@ body.lowminb{--bg:#ffefd9}
 .basis button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
 .cell.run7{box-shadow:inset 0 0 0 2px hsl(0 80% 50%)}
 .card.calc{position:relative}
+@keyframes slideInL{from{transform:translateX(28px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes slideInR{from{transform:translateX(-28px);opacity:.35}to{transform:none;opacity:1}}
+#cal.slideL{animation:slideInL .22s ease-out}#cal.slideR{animation:slideInR .22s ease-out}
 #fillBox{position:absolute;left:8px;right:8px;top:34px;bottom:60px;display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
 #fillBox[hidden]{display:none}
 .fillcard{pointer-events:auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:0 10px 28px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;max-width:270px}
@@ -299,8 +302,8 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.13</small>
-    <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.14</small>
+    <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
     · 날짜 아래 칸은 누를 때마다 빈칸 → 운동(초록) → 약속(주황) → 빈칸. 약속은 그날 8시간 고정이고, 토요일은 운동만 돼요. ▲ 올림 / ▼ 내림으로 순서 방향을 바꿔요.<br>
@@ -1104,6 +1107,27 @@ h1{font-size:17px}
   $('goNow').addEventListener('click',function(){var t=new Date();vy=t.getFullYear();vm=t.getMonth();render()});
   $('pm').addEventListener('click',function(){vm--;if(vm<0){vm=11;vy--}render()});
   $('nm').addEventListener('click',function(){vm++;if(vm>11){vm=0;vy++}render()});
+  // 앱: 달력을 좌우로 밀어서 이전/다음 달로 이동 (왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달)
+  if(FILLUI){
+    (function(){
+      var area=document.querySelector('.card.calc'),sx=0,sy=0,st=0,ok=false;
+      function slide(cls){var cal=$('cal');cal.classList.remove('slideL','slideR');void cal.offsetWidth;cal.classList.add(cls)}
+      area.addEventListener('touchstart',function(e){
+        if(e.touches.length!==1){ok=false;return}
+        var t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();
+        ok=!calcMode&&sx>24&&sx<window.innerWidth-24;   // 화면 가장자리에서 시작한 밀기는 무시(아이폰 뒤로 가기 동작과 겹침 방지)
+      },{passive:true});
+      area.addEventListener('touchend',function(e){
+        if(!ok)return;ok=false;
+        var t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+        if(Date.now()-st>700||Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.6)return;   // 짧거나 느리거나 세로에 가까우면 무시(스크롤·누르기와 구분)
+        if(document.querySelector('#fillSheet,#setBack,#cloudBack')||!$('sheet').hidden)return;   // 팝업이 떠 있으면 무시
+        var b=dx<0?$('nm'):$('pm');
+        if(b&&!b.disabled){b.click();slide(dx<0?'slideL':'slideR')}
+      },{passive:true});
+      area.addEventListener('touchcancel',function(){ok=false},{passive:true});
+    })();
+  }
 
   // ----- 저장소: 공유 db(있으면) / 이 기기(없으면) -----
   // ===== 앱: 요약 기준(최대/최소) · 월 최소 근무시간 · 최소 미달 경고 =====
