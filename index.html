@@ -113,6 +113,17 @@ h2{font-size:16px;margin:0}
 .foot .ghost{white-space:nowrap}
 .note{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
 .legend{margin:0;font-size:12px;color:var(--muted)}
+.calc.lowmin{background:hsl(30 100% 55%/.22);border-color:hsl(26 95% 45%/.9);box-shadow:0 0 0 1px hsl(26 95% 45%/.5) inset}
+body.lowminb{--bg:#ffefd9}
+:root[data-theme="dark"] body.lowminb{--bg:#33220f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body.lowminb{--bg:#33220f}}
+.basis{display:flex;align-items:center;justify-content:flex-end;gap:0}
+.basis[hidden]{display:none}
+.basis span{font-size:11px;color:var(--muted);margin-right:6px}
+.basis button{border:1px solid var(--line);background:transparent;color:var(--muted);font-size:12px;padding:2px 12px;line-height:1.5}
+.basis button:first-of-type{border-radius:999px 0 0 999px}
+.basis button:last-of-type{border-radius:0 999px 999px 0;border-left:0}
+.basis button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
 .card.calc{position:relative}
 #fillBox{position:absolute;left:8px;right:8px;top:34px;bottom:60px;display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
 #fillBox[hidden]{display:none}
@@ -279,7 +290,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.4.2</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.5.0</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
@@ -566,7 +577,7 @@ h1{font-size:17px}
     if(calcMode){
       $('runMode').textContent='계산 모드';$('runMode').setAttribute('aria-pressed',true);
       $('handMode').disabled=true;
-      var ce=document.querySelector('.calc');ce.classList.remove('under','over');
+      var ce=document.querySelector('.calc');ce.classList.remove('under','over','lowmin');document.body.classList.remove('lowminb');if($('basisTog'))$('basisTog').hidden=true;   // 계산 모드: 기준 토글·최소 경고 끔
       if(cs.date!==idOf(new Date()))calcDefault();
       var cvh=lastCalH;if(cvh)$('calcView').style.minHeight=cvh+'px';
       renderCalc();return;
@@ -591,6 +602,7 @@ h1{font-size:17px}
     }
     // 계획 모드에서 실제 기록으로 치는 날: 지난 날(기록·교육), 오늘은 실제 기록이 있을 때만
     function actMin(d){return d.id<todayId?dayMin(c,d.id):(d.id===todayId&&c.a[d.id]!=null?c.a[d.id]:0)}
+    var minB=FILLUI&&basis()==='min',mi0=FILLUI?minInfo(ds,c):null;   // 요약 기준이 '최소'인지, 이 달 최소 근무시간
     if(runMode){
       // 지난 실제(오늘 기록 포함) + 앞으로 계획(오늘 기록이 없으면 오늘 계획 포함) = 예상, 월 최대와 비교
       var act=0,planLeft=0,exN=0;
@@ -602,16 +614,16 @@ h1{font-size:17px}
         if(d.id<=todayId&&m>0&&runEx(d.id)===true)exN++;
       });
       warnEx=exOn()&&exN<EX_NEED;
-      var projected=act+planLeft,diff=projected-cap*60,sg=diff>0?'+':diff<0?'−':'±';
+      var projected=act+planLeft,diff=projected-(minB?mi0.h:cap)*60,sg=diff>0?'+':diff<0?'−':'±';
       $('stats').innerHTML=
         '<div><dt>예상</dt><dd>'+fmtHM(projected)+'</dd></div>'+
-        '<div'+(diff>0?' class="over"':'')+'><dt>차이</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
+        '<div'+(minB?(diff<0?' class="over"':diff>0?' class="under"':''):(diff>0?' class="over"':''))+'><dt>'+(minB?'최소 대비':'차이')+'</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
         (exOn()?'<div class="'+(exN<EX_NEED?'bad':'done')+'"><dt>운동</dt><dd>'+exN+'/'+EX_NEED+(exN>=EX_NEED?' ✓':'')+'</dd></div>':'');
       // 계획 모드와 같은 안내: 넘치면 빨강, 모자라면 초록(더 근무 가능)
       if(diff>0)msg='최대보다 '+fmtHM(diff)+' 많아요.';
       else if(diff<0){msg=fmtHM(-diff)+' 더 근무할 수 있어요.';okMsg=true}
     }else{
-      $('cap').innerHTML='최대 <b>'+cap+'시간</b> <small>(주 '+LIM+'시간제)</small>'+(limPend&&!ro()?' <button type="button" class="todaybtn" id="fitBtn">맞추기</button>':'')+(ds.length===29?' <small>(임시값)</small>':'');
+      $('cap').innerHTML=minB?('최소 <b>'+mi0.h+'시간</b> <small>('+(mi0.adm?'관리자 설정':'평일 8시간 기준')+(mi0.leave?' · 연차 '+mi0.leave+'일 반영':'')+')</small>'):('최대 <b>'+cap+'시간</b> <small>(주 '+LIM+'시간제)</small>'+(limPend&&!ro()?' <button type="button" class="todaybtn" id="fitBtn">맞추기</button>':'')+(ds.length===29?' <small>(임시값)</small>':''));
       // 화면에 보이는 운동 칸과 같은 기준으로 센다: 지난 날(실제 기록 있음)은 실제 운동, 그 외는 계획의 운동
       var exShown=0;
       ds.forEach(function(d){
@@ -623,16 +635,26 @@ h1{font-size:17px}
       var t2=r.total,mismatch=!r.error&&t2!==cap;
       // 합계: 지난 날은 실행 모드에서 고친 실제 기록, 오늘·앞으로는 계획 시간
       ds.forEach(function(d){var rw=r.rows[d.id],pa=actMin(d);tm+=pa>0?pa:(rw?rw.h*60:0)});
-      var pdiff=tm-cap*60,psg=pdiff>0?'+':pdiff<0?'−':'±';
+      var pdiff=tm-(minB?mi0.h:cap)*60,psg=pdiff>0?'+':pdiff<0?'−':'±';
       $('stats').innerHTML=
         '<div><dt>합계</dt><dd>'+fmtD(tm)+'</dd></div>'+
-        '<div'+(pdiff>0?' class="over"':pdiff<0?' class="under"':'')+'><dt>차이</dt><dd>'+psg+fmtD(Math.abs(pdiff))+'</dd></div>'+
+        '<div'+(minB?(pdiff<0?' class="over"':pdiff>0?' class="under"':''):(pdiff>0?' class="over"':pdiff<0?' class="under"':''))+'><dt>'+(minB?'최소 대비':'차이')+'</dt><dd>'+psg+fmtD(Math.abs(pdiff))+'</dd></div>'+
         (exOn()?'<div'+(warnEx?' class="bad"':'')+'><dt>운동</dt><dd>'+exShown+'/'+EX_NEED+'</dd></div>':'');
       // 빨간 글자의 숫자는 위쪽 요약(합계·차이)과 같은 값(tm: 지난 날 실제 기록 반영)으로 계산
       if(r.error&&r.error.indexOf('연속')>=0)msg=r.error;
       else if(r.error||mismatch){
         if(pdiff>0)msg='최대보다 '+fmtHM(pdiff)+' 많아요.';
         else if(pdiff<0){msg=fmtHM(-pdiff)+' 더 근무할 수 있어요.';okMsg=true}   // 모자람은 경고가 아니라 여유: 초록
+      }
+    }
+    var lowMin=false;
+    if(FILLUI){
+      var tot60=runMode?projected:tm,over60=tot60-cap*60;
+      lowMin=!calcMode&&key()>=idOf(new Date()).slice(0,7)&&!monthNeedsSetup()&&tot60<mi0.h*60;   // 이번 달 이후, 설정한 달만
+      if(!(r.error&&r.error.indexOf('연속')>=0)){
+        if(over60>0){msg='최대보다 '+fmtHM(over60)+' 많아요.';okMsg=false}
+        else if(lowMin){msg='최소보다 '+fmtHM(mi0.h*60-tot60)+' 모자라요.';okMsg=false}
+        else if(minB){var dm=tot60-mi0.h*60;msg=dm>0?'최소보다 '+fmtHM(dm)+' 더 했어요.':'';okMsg=true}
       }
     }
     document.querySelector('.sum').classList.toggle('run',runMode);
@@ -680,10 +702,11 @@ h1{font-size:17px}
     $('cal').innerHTML=h;
     lastCalH=$('dow').offsetHeight+parseFloat(getComputedStyle(document.querySelector('.calc')).rowGap||0)+$('cal').offsetHeight;
     $('cal').classList.toggle('warnex',warnEx);
-    updateFillBox();
+    updateFillBox();ensureBasisUI();
     $('cal').classList.toggle('leavemode',leaveMode);
     var calcEl=document.querySelector('.calc');
-    calcEl.classList.toggle('under',!runMode&&tm<cap*60);   // 최대 미만: 초록
+    calcEl.classList.toggle('under',!runMode&&tm<cap*60&&!lowMin);   // 최대 미만: 초록 (최소 미달이면 경고색이 우선)
+    calcEl.classList.toggle('lowmin',lowMin);document.body.classList.toggle('lowminb',lowMin);   // 최소 미달: 달력 카드 + 화면 전체 배경 경고
     calcEl.classList.toggle('over',!runMode&&tm>cap*60);    // 최대 초과: 빨강 (딱 맞으면 기본 흰색)
   }
 
@@ -987,6 +1010,32 @@ h1{font-size:17px}
   $('nm').addEventListener('click',function(){vm++;if(vm>11){vm=0;vy++}render()});
 
   // ----- 저장소: 공유 db(있으면) / 이 기기(없으면) -----
+  // ===== 앱: 요약 기준(최대/최소) · 월 최소 근무시간 · 최소 미달 경고 =====
+  var BK='view-basis-v1';   // 이 기기의 보기 설정(서버에 저장 안 함)
+  function basis(){try{return localStorage.getItem(BK)==='min'?'min':'max'}catch(e){return 'max'}}
+  function setBasis(b){try{localStorage.setItem(BK,b)}catch(e){}render()}
+  function minMap(){try{return JSON.parse(localStorage.getItem('min-hours-v1'))||{}}catch(e){return {}}}   // 관리자가 서버에 입력한 월별 최소(cloud.js 가 받아 둠)
+  // 월 최소 근무시간: 관리자 입력이 있으면 그 값, 없으면 (공휴일 아닌 평일 수 × 8시간, 주 40시간 기준). 연차는 하루 8시간으로 쳐서 최소에서 뺌
+  function minInfo(ds,c){
+    var adm=+minMap()[key()],has=adm>0,wd=0,leave=0;
+    ds.forEach(function(d){if(!d.we&&!HOL[d.id])wd++;if(!d.we&&c.d[d.id]==='leave')leave++});
+    var base=has?adm:wd*8;
+    return {h:Math.max(0,base-leave*8),base:base,adm:has,leave:leave};
+  }
+  function ensureBasisUI(){
+    if(!FILLUI)return;
+    var el=$('basisTog');
+    if(!el){
+      el=document.createElement('div');el.id='basisTog';el.className='basis';
+      el.innerHTML='<span>보는 기준</span><button type="button" data-b="max">최대</button><button type="button" data-b="min">최소</button>';
+      var sm=document.querySelector('.sum');sm.insertBefore(el,sm.firstChild);
+      el.addEventListener('click',function(e){var b=e.target.closest('button[data-b]');if(b)setBasis(b.getAttribute('data-b'))});
+    }
+    var cb=basis();[].forEach.call(el.querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.getAttribute('data-b')===cb)});
+    el.hidden=calcMode;
+  }
+  window.addEventListener('minsupdated',function(){render()});   // cloud.js 가 서버에서 최소 근무시간을 새로 받았을 때
+
   // ===== 앱: 되돌리기(최근 50단계). 저장할 때마다 '바뀐 달의 이전 상태'를 기록하고, 누를 때마다 한 단계씩 뒤로 =====
   var UK='undo-stack-v1',UMAX=50,undoStack=[],prevMap={};
   function emptyMonth(o){return !o||Object.keys(o).every(function(f){var v=o[f];return v&&typeof v==='object'&&!Array.isArray(v)&&!Object.keys(v).length})}

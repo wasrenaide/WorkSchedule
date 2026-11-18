@@ -39,6 +39,13 @@ pre{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--bg
     <div class="msg" id="amsg"></div>
   </div>
   <div class="card">
+    <b>월별 최소 근무시간</b>
+    <div style="color:var(--muted);font-size:13px">모든 사용자 앱에 적용돼요. 비워 두면 앱이 (공휴일 아닌 평일 수 × 8시간)으로 계산해요.</div>
+    <div class="row"><input id="mm" type="month" style="min-width:150px"><input id="mh" type="number" inputmode="numeric" min="1" max="400" placeholder="시간 (예: 168)" style="width:130px"><button id="mset">저장</button><button class="del" id="mclr">이 달 지우기</button></div>
+    <div class="msg" id="mmsg"></div>
+    <table><thead><tr><th>월</th><th>최소 근무시간</th></tr></thead><tbody id="mlist"></tbody></table>
+  </div>
+  <div class="card">
     <div class="row"><b>사용자</b><button id="refresh">새로고침</button></div>
     <table><thead><tr><th>이름</th><th>가입</th><th>서버버전</th><th>마지막 저장</th></tr></thead><tbody id="list"></tbody></table>
   </div>
@@ -53,17 +60,29 @@ pre{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--bg
 <script>
 var API='https://iqzswnpfxdjsnxlvisxf.supabase.co/rest/v1/rpc/';
 var KEY='sb_publishable_xL6Ih_CqeQ0PzfTJvJxMew_BtSMd68T';
-var ERR={bad_admin:'관리자 비밀번호가 틀렸어요.',locked:'여러 번 틀려서 10분간 잠겼어요.',duplicate:'같은 이름+PIN이 이미 있어요.',bad_pin:'PIN은 숫자 4~8자리예요.',bad_name:'이름은 1~20자예요.',network:'인터넷 연결을 확인해주세요.'};
+var ERR={bad_month:'월 형식이 맞지 않아요.',bad_hours:'시간은 1~400 사이로 입력해 주세요.',bad_admin:'관리자 비밀번호가 틀렸어요.',locked:'여러 번 틀려서 10분간 잠겼어요.',duplicate:'같은 이름+PIN이 이미 있어요.',bad_pin:'PIN은 숫자 4~8자리예요.',bad_name:'이름은 1~20자예요.',network:'인터넷 연결을 확인해주세요.'};
 var pw='',cur=null,$=function(i){return document.getElementById(i)};
 function rpc(fn,a){return fetch(API+fn,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(a)}).then(function(r){return r.json()}).catch(function(){return{ok:false,error:'network'}})}
 function et(r){return ERR[r.error]||('오류: '+(r.error||r.message))}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fmt(t){if(!t)return '-';var d=new Date(t);return (d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
 function msg(id,t,bad){$(id).className='msg '+(bad?'bad':'ok');$(id).textContent=t}
-$('go').onclick=function(){pw=$('pw').value;rpc('app_admin_list',{p_pw:pw}).then(function(r){if(!r.ok){msg('lmsg',et(r),true);return}$('login').hidden=true;$('app').hidden=false;draw(r.users)})};
+$('go').onclick=function(){pw=$('pw').value;rpc('app_admin_list',{p_pw:pw}).then(function(r){if(!r.ok){msg('lmsg',et(r),true);return}$('login').hidden=true;$('app').hidden=false;draw(r.users);var n=new Date();$('mm').value=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);loadMins()})};
 $('pw').onkeydown=function(e){if(e.key==='Enter')$('go').onclick()};
 function refresh(){rpc('app_admin_list',{p_pw:pw}).then(function(r){if(!r.ok){msg('amsg',et(r),true);return}draw(r.users)})}
-$('refresh').onclick=refresh;
+$('refresh').onclick=function(){refresh();loadMins()};
+function loadMins(){rpc('app_get_mins',{}).then(function(r){
+  if(!r||r.code||r.message){$('mlist').innerHTML='<tr><td colspan="2">불러오지 못했어요. 서버 설정(patch_min.sql)을 먼저 실행해 주세요.</td></tr>';return}
+  var ks=Object.keys(r).sort();
+  $('mlist').innerHTML=ks.length?ks.map(function(k){return '<tr class="mrow" data-m="'+k+'" data-h="'+r[k]+'" style="cursor:pointer"><td>'+k+'</td><td>'+r[k]+'시간</td></tr>'}).join(''):'<tr><td colspan="2">아직 입력한 달이 없어요.</td></tr>';
+  Array.prototype.forEach.call(document.querySelectorAll('tr.mrow'),function(tr){tr.onclick=function(){$('mm').value=tr.dataset.m;$('mh').value=tr.dataset.h}});
+})}
+function setMin(h){var m=$('mm').value;if(!m){msg('mmsg','월을 먼저 골라 주세요.',true);return}
+  rpc('app_admin_set_min',{p_pw:pw,p_month:m,p_hours:h}).then(function(r){
+    if(r.ok){msg('mmsg',(r.cleared?m+' 설정을 지웠어요.':m+' 최소 근무시간을 '+h+'시간으로 저장했어요.'));if(r.cleared)$('mh').value='';loadMins();return}
+    msg('mmsg',(r.code||r.message)?'서버 설정(patch_min.sql)을 먼저 실행해 주세요.':et(r),true)})}
+$('mset').onclick=function(){var h=parseInt($('mh').value,10);if(!(h>0)){msg('mmsg','시간을 입력해 주세요.',true);return}setMin(h)};
+$('mclr').onclick=function(){setMin(0)};
 function draw(us){
   $('list').innerHTML=us.length?us.map(function(u){return '<tr class="u" data-id="'+u.id+'" data-n="'+esc(u.name)+'"><td>'+esc(u.name)+'</td><td>'+fmt(u.created_at)+'</td><td>'+u.version+'</td><td>'+fmt(u.updated_at)+'</td></tr>'}).join(''):'<tr><td colspan="4">아직 사용자가 없어요.</td></tr>';
   Array.prototype.forEach.call(document.querySelectorAll('tr.u'),function(tr){tr.onclick=function(){open_(tr.dataset.id,tr.dataset.n)}});

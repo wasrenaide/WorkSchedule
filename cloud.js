@@ -210,6 +210,17 @@
   function busy(on) { var b = document.querySelectorAll('#cloudBox button'); for (var i = 0; i < b.length; i++) b[i].disabled = on; }
   function now() { var d = new Date(); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
 
+  /* ---------- 월별 최소 근무시간(관리자 입력): 로그인 없이 읽고 폰에 보관, 안 되면 보관본/기본값 사용 ---------- */
+  function fetchMins() {
+    rpc('app_get_mins', {}).then(function (r) {
+      if (!r || typeof r !== 'object' || r.code || r.message || r.ok === false) return;   // 서버 설정(SQL) 전이거나 오류면 무시
+      try { localStorage.setItem('min-hours-v1', JSON.stringify(r)); } catch (e) {}
+      window.dispatchEvent(new Event('minsupdated'));
+    });
+  }
+  fetchMins();
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') fetchMins(); });
+
   /* ---------- 동작 ---------- */
   function login(isReg) {
     var name = document.getElementById('cn').value.trim(), pin = document.getElementById('cp').value.trim();
