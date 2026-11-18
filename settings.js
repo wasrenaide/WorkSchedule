@@ -78,12 +78,22 @@
         b.onclick = function () { doUpdate(); };
       } else {
         say('가장 최신 버전이에요 ✓ (' + curVer() + ')', 'ok');
-        b.textContent = '그래도 다시 불러오기'; b.className = '';
-        b.onclick = function () { doUpdate(); };
+        b.textContent = '저장 파일 다시 받아 두기'; b.className = '';
+        b.onclick = function () { doRefresh(); };
       }
     }).catch(function () {
       b.disabled = false; say('확인하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.', 'bad');
     });
+  }
+  // 같은 버전: 화면은 그대로 두고(설정 창 유지) 폰에 저장된 파일만 서버 최신본으로 다시 받아 둠. 다음에 앱을 열 때 적용돼요.
+  function doRefresh() {
+    var b = document.getElementById('updBtn'); if (b) b.disabled = true; say('다시 받아 두는 중…');
+    Promise.all(['./', 'cloud.js', 'settings.js', 'sw.js'].map(function (f) { return fetch(f + '?c=' + Date.now(), { cache: 'reload' }).catch(function () {}); }))
+      .then(function () { return navigator.serviceWorker ? navigator.serviceWorker.getRegistrations() : []; })
+      .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
+      .then(function () { return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : null; })
+      .then(function () { if (b) b.disabled = false; say('최신 파일로 다시 받아 두었어요 ✓ 다음에 앱을 열 때 적용돼요. (지금 쓰는 버전 ' + curVer() + ')', 'ok'); })
+      .catch(function () { if (b) b.disabled = false; say('다시 받지 못했어요. 인터넷 연결을 확인해 주세요.', 'bad'); });
   }
   function doUpdate() {
     var b = document.getElementById('updBtn'); if (b) b.disabled = true; say('갱신하는 중… 잠시 뒤 앱이 다시 열려요.');
@@ -117,46 +127,54 @@
     var f = null; try { f = sessionStorage.getItem('reopen-set-v1'); sessionStorage.removeItem('reopen-set-v1'); } catch (e) {}
     if (!f) return;
     setTimeout(function () {
-      open();
+      if (!back) open();
       say('다시 불러왔어요 ✓ 지금 쓰는 버전 ' + curVer(), 'ok');
       var m = document.getElementById('updMsg'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'center' });
-    }, 400);
+    }, 30);
   })();
 
   var back = null;
   function close() { if (back) { back.remove(); back = null; } }
   function open() {
-    var o = read();
     back = document.createElement('div'); back.id = 'setBack';
     // 설정 창은 바깥을 눌러도 닫히지 않고, '닫기' 버튼으로만 닫음(실수로 닫히는 것 방지)
+    document.body.appendChild(back);
+    build();
+  }
+  // 설정을 바꾸면 화면을 새로 불러오지 않고 바로 적용 + 창 내용만 다시 그림(창은 닫히지 않음)
+  function applyNow() { window.dispatchEvent(new Event('settingschanged')); build(); }
+  function build() {
+    var bx0 = document.getElementById('setBox'), prevTop = bx0 ? bx0.scrollTop : 0;
+    var o = read();
     var h = '<div id="setBox"><h2>설정</h2>';
     ITEMS.forEach(function (it) {
       var dis = it.needs && !on(o, it.needs);
       h += '<div class="it' + (dis ? ' dis' : '') + '"><div class="t"><b>' + it.name + '</b><small>' + it.desc + '</small></div>' +
         '<button type="button" class="sw' + (on(o, it.k) ? ' on' : '') + '" data-k="' + it.k + '" ' + (dis ? 'disabled' : '') + ' aria-label="' + it.name + '"></button></div>';
     });
-    var pf = o.pref || {}, pe = (pf.ex || [9, 10, 7]), pn = (pf.no || [10, 11, 8]);
+    var pf = o.pref || {}, pe = (pf.ex || [9, 10, 7]), pn = (pf.no || [10, 11, 8]), exOnS = on(o, 'ex');
     function opts(sel, lo, hi, none) { var s = none ? '<option value="">없음</option>' : ''; for (var v = lo; v <= hi; v++) s += '<option value="' + v + '"' + (+sel === v ? ' selected' : '') + '>' + v + '시간</option>'; return s; }
-    h += '<div class="pref"><b>선호 근무시간</b><small>"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 <b>1순위를 가장 많이</b> 써요. 시간이 많은 날은 월초로 모으고 적은 날은 말일 쪽에 둬요(예: 앞쪽 11시간, 뒤쪽 10시간). 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 평일 8시간이라 쓰이지 않아요. 이미 정해진 날은 바뀌지 않아요.</small>' +
-      '<div class="pr hd"><span></span><em class="r1">1순위<i>가장 선호</i></em><em class="r2">2순위</em><em class="r3">3순위<i>가장 낮음</i></em></div>' +
-      '<div class="pr"><span>운동 있는 날</span><select class="r1" data-p="ex0">' + opts(pe[0], 5, 12, false) + '</select><select class="r2" data-p="ex1">' + opts(pe[1], 5, 12, true) + '</select><select class="r3" data-p="ex2">' + opts(pe[2], 5, 12, true) + '</select></div>' +
-      '<div class="pr"><span>운동 없는 날</span><select class="r1" data-p="no0">' + opts(pn[0], 5, 13, false) + '</select><select class="r2" data-p="no1">' + opts(pn[1], 5, 13, true) + '</select><select class="r3" data-p="no2">' + opts(pn[2], 5, 13, true) + '</select></div>' +
-      '<small>왼쪽일수록 선호가 높아요(1순위가 가장 높음). 기본값은 운동 있는 날 9·10·7시간, 운동 없는 날 10·11·8시간이에요(새로 최대로 채우기를 고른 달부터 적용). 여기서 직접 바꾸면 최대로 채우는 모든 달에 적용돼요.</small></div>';
-    h += '<p>바꾸면 화면이 다시 불러와져요. 이미 입력한 근무시간은 지워지지 않아요. 설정은 서버에 저장할 때 같이 저장돼요.</p>' +
+    var head = '<div class="pr hd"><span></span><em class="r1">1순위<i>가장 선호</i></em><em class="r2">2순위</em><em class="r3">3순위<i>가장 낮음</i></em></div>';
+    var rowNo = function (label) { return '<div class="pr"><span>' + label + '</span><select class="r1" data-p="no0">' + opts(pn[0], 5, 13, false) + '</select><select class="r2" data-p="no1">' + opts(pn[1], 5, 13, true) + '</select><select class="r3" data-p="no2">' + opts(pn[2], 5, 13, true) + '</select></div>'; };
+    var rowEx = '<div class="pr"><span>운동 있는 날</span><select class="r1" data-p="ex0">' + opts(pe[0], 5, 12, false) + '</select><select class="r2" data-p="ex1">' + opts(pe[1], 5, 12, true) + '</select><select class="r3" data-p="ex2">' + opts(pe[2], 5, 12, true) + '</select></div>';
+    h += '<div class="pref"><b>선호 근무시간</b><small>"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 <b>1순위를 가장 많이</b> 써요. 시간이 많은 날은 월초로 모으고 적은 날은 말일 쪽에 둬요(예: 앞쪽 11시간, 뒤쪽 10시간). 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 평일 8시간이라 쓰이지 않아요. 이미 정해진 날은 바뀌지 않아요.</small>' + head +
+      (exOnS ? rowEx + rowNo('운동 없는 날') : rowNo('근무시간')) +
+      '<small>왼쪽일수록 선호가 높아요(1순위가 가장 높음). ' + (exOnS ? '기본값은 운동 있는 날 9·10·7시간, 운동 없는 날 10·11·8시간이에요' : '운동을 꺼 두어서 모든 날에 같은 순위를 써요. 기본값은 10·11·8시간이에요') + '(새로 최대로 채우기를 고른 달부터 적용). 여기서 직접 바꾸면 최대로 채우는 모든 달에 적용돼요.</small></div>';
+    h += '<p>바꾸면 바로 적용돼요. 이미 입력한 근무시간은 지워지지 않아요. 설정은 서버에 저장할 때 같이 저장돼요.</p>' +
       '<div class="upd"><b>앱 업데이트</b><span class="m" id="updMsg">지금 쓰는 버전 ' + curVer() + '</span>' +
       '<button type="button" id="updBtn">최신 버전 확인하기</button></div>' +
       '<div class="upd"><b>관리자</b><span class="m">사용자 관리와 월별 최소 근무시간을 입력하는 곳이에요. 관리자 비밀번호가 있어야 들어갈 수 있어요.</span>' +
       '<button type="button" id="admBtn">관리자 페이지 열기</button></div>' +
       '<button type="button" class="close" id="setClose">닫기</button></div>';
     back.innerHTML = h;
-    document.body.appendChild(back);
+    var bx1 = document.getElementById('setBox'); if (bx1) bx1.scrollTop = prevTop;
     document.getElementById('setClose').addEventListener('click', close);
     document.getElementById('updBtn').addEventListener('click', checkUpdate);
     Array.prototype.forEach.call(back.querySelectorAll('.pref select'), function (sl) {
       sl.addEventListener('change', function () {
         var g = function (k) { var e = back.querySelector('select[data-p="' + k + '"]'); return e && e.value ? +e.value : null; };
-        var cur = read(), ex = [g('ex0'), g('ex1'), g('ex2')].filter(Boolean), no = [g('no0'), g('no1'), g('no2')].filter(Boolean);
-        cur.pref = { ex: ex, no: no }; write(cur); location.reload();
+        var cur = read(), no = [g('no0'), g('no1'), g('no2')].filter(Boolean), ex = back.querySelector('select[data-p="ex0"]') ? [g('ex0'), g('ex1'), g('ex2')].filter(Boolean) : ((cur.pref && cur.pref.ex) || [9, 10, 7]);   // 운동을 끈 상태면 기존 값을 그대로 보존
+        cur.pref = { ex: ex, no: no }; write(cur); applyNow();
       });
     });
     document.getElementById('admBtn').addEventListener('click', function () { location.href = 'admin.html'; });   // 같은 창에서 열고, 관리자 페이지의 '← 앱으로'로 돌아옴
@@ -165,7 +183,7 @@
         var cur = read(), k = b.getAttribute('data-k');
         if (on(cur, k)) cur[k] = false; else delete cur[k];
         write(cur);
-        location.reload();
+        applyNow();
       });
     });
   }

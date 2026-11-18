@@ -290,7 +290,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.3</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.4</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
@@ -388,6 +388,10 @@ h1{font-size:17px}
   function fmtD(m){var v=Math.round(m/6)/10;return v%1===0?String(v):v.toFixed(1)}   // 분 → 소수 시간(10:30 → 10.5)
   function monthDays(){var n=new Date(vy,vm+1,0).getDate(),a=[];for(var i=1;i<=n;i++){var d=new Date(vy,vm,i);a.push({id:idOf(d),n:i,dow:d.getDay(),we:d.getDay()===0||d.getDay()===6})}return a}
   var APPSET=(function(){try{var o=JSON.parse(localStorage.getItem('app-settings-v1'));return o&&typeof o==='object'?o:{}}catch(e){return {}}})();   // 앱 설정: ex(운동) / dine(회식·약속), false면 끔. 토요일 운동은 운동에 포함(운동이 켜져 있으면 휴일 아닌 토요일에도 열림). 웹에는 없음 → 모두 켜짐
+  window.addEventListener('settingschanged',function(){   // 설정 창에서 바꾼 값을 화면을 새로 불러오지 않고 바로 적용
+    try{APPSET=JSON.parse(localStorage.getItem('app-settings-v1'))||{}}catch(e){APPSET={}}
+    render();
+  });
   function exOn(){return APPSET.ex!==false}
   var FILLUI=window.__fillUI===true;   // 앱에서만 켜짐: 안 열어본 달 설정 팝업 + 월별 자동 채우기 모드(min/max). 웹에는 없음 → 예전 방식(max)
   // 선호 근무시간(앱 설정 pref:{ex:[운동 있는 날 1,2,3순위], no:[운동 없는 날 1,2,3순위]}): 최대 모드에서 월 최대에 딱 맞는 조합 중 높은 순위를 가장 많이 씀
@@ -397,7 +401,7 @@ h1{font-size:17px}
     var pf=APPSET.pref;
     if(!pf){if(!(all[key()]||{}).pd)return null;pf=PREF_DEFAULT}
     var pe=(pf.ex||[]).map(Number).filter(function(v){return v>=5&&v<=EX_MAX}),pn=(pf.no||[]).map(Number).filter(function(v){return v>=5&&v<=13});
-    return pe.length&&pn.length?{ex:pe,no:pn}:null;
+    return (pe.length||!exOn())&&pn.length?{ex:pe.length?pe:[10],no:pn}:null;   // 운동을 끈 경우엔 운동 있는 날이 없으므로 no(1·2·3순위)만 쓰임
   }
   function prefPlan(N,ex,R){
     var P=prefOf();if(!P)return null;
