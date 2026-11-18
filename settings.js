@@ -5,7 +5,7 @@
   var KEY = 'app-settings-v1';
   var ITEMS = [
     { k: 'ex', name: '운동', desc: '끄면 운동 칸과 "운동 n/7" 표시가 모두 사라지고, 운동 횟수 조건 없이 근무시간만 배분해요.' },
-    { k: 'dine', name: '회식/약속', desc: '운동과 따로 켜고 끌 수 있어요. 끄면 회식/약속 단계가 빠지고, 켜면 평일 칸에서 눌러 표시해요(그날 8시간 고정).' }
+    { k: 'dine', name: '약속', desc: '운동과 따로 켜고 끌 수 있어요. 끄면 약속 단계가 빠지고, 켜면 평일 칸에서 눌러 표시해요(그날 8시간 고정).' }
   ];
 
   function read() { try { var o = JSON.parse(localStorage.getItem(KEY)); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }

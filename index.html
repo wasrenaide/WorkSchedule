@@ -268,13 +268,13 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.2.2</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.3.0</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
     · ▲ 올림 / ▼ 내림 버튼으로 누르는 방향(숫자, 운동 칸)을 바꿔요.<br>
-    · 운동 칸(평일, 휴일이 아닌 토요일): 운동함 → 회식/약속 → 운동안함(토요일은 회식/약속 없이 운동함 ↔ 운동안함). 회식/약속은 8시간 고정, 운동 횟수에 안 세요. 운동일은 최대 12시간.<br>
-    · 연차·교육: 켜고 평일을 누르면 연차 → 교육(8시간) → 해제. 주말·공휴일은 없어요.<br>
+    · 운동 칸(평일, 휴일이 아닌 토요일): 운동함 → 약속 → 운동안함(토요일은 약속 없이 운동함 ↔ 운동안함). 약속은 8시간 고정, 운동 횟수에 안 세요. 운동일은 최대 12시간.<br>
+    · 연차·교육: 켜고 평일을 누르면 연차 → 교육(8시간) → 일정(근무 4시간으로 시작, 이후 시간은 바꿀 수 있어요) → 해제. 주말·공휴일은 없어요.<br>
     · 수기입력: 돌림판으로 직접 고르고, 휴무·쉼·자동으로 되돌릴 때도 써요.<br>
     · 자동 시간은 기본 11시간(운동일 10). 넘치면 말일부터 줄이고, 모자라면 오늘 이후 가까운 날부터 13시간(운동일 12)으로 올려요.<br>
     · 운동은 기본 7일을 넣어 주고, 7일 미만이면 빨갛게 경고해요.<br>
@@ -337,7 +337,7 @@ h1{font-size:17px}
   function key(){return vy+'-'+pad(vm+1)}
   function cur(){
     var k=key();if(!all[k])all[k]={};
-    var c=all[k];['d','x','a','ax','lk'].forEach(function(f){if(!c[f])c[f]={}});return c;
+    var c=all[k];['d','x','a','ax','lk','sc'].forEach(function(f){if(!c[f])c[f]={}});return c;
   }
   function setSync(t,bad){var s=$('sync');s.textContent=t;s.className=bad?'bad':'';s.hidden=!t||t==='저장됨'}
   var dirty={},writing=false;
@@ -369,8 +369,8 @@ h1{font-size:17px}
   function exOn(){return APPSET.ex!==false}
   function dineOn(){return APPSET.dine!==false}
   function exOk(d){if(!exOn())return false;return !d.we||(d.dow===6&&!HOL[d.id])}
-  function dineOk(d){return dineOn()&&!d.we}   // 회식/약속은 평일만(운동과 따로 켜고 끔)
-  function slotOk(d){return exOk(d)||dineOk(d)}   // 날짜 칸 아래 버튼(운동 또는 회식/약속)이 있는 날   // 운동 칸이 열리는 날: 평일(공휴일 포함)과 휴일이 아닌 토요일
+  function dineOk(d){return dineOn()&&!d.we}   // 약속은 평일만(운동과 따로 켜고 끔)
+  function slotOk(d){return exOk(d)||dineOk(d)}   // 날짜 칸 아래 버튼(운동 또는 약속)이 있는 날   // 운동 칸이 열리는 날: 평일(공휴일 포함)과 휴일이 아닌 토요일
   function isHrs(c){return c&&c!=='off'&&c!=='leave'}
   function baseOf(c){return c==='edu'?8:parseInt(c,10)}
 
@@ -461,7 +461,7 @@ h1{font-size:17px}
 
   // 운동 칸: 3단계 on(운동함) / dine(회식) / off(운동안함)
   function exBtn(st,id,disabled,done){
-    var on=st==='on',label=(st==='dine'||!exOn())?'회식/약속':(on&&done?'운동✓':'운동');   // 운동을 끈 경우 표시 전 칸도 '회식/약속'
+    var on=st==='on',label=(st==='dine'||!exOn())?'약속':(on&&done?'운동✓':'운동');   // 운동을 끈 경우 표시 전 칸도 '약속'
     return '<button type="button" class="ex'+(on&&done?' done':'')+'" data-s="'+st+'"'+((disabled||ro())?' disabled':' data-ex="'+id+'"')+' aria-pressed="'+on+'">'+label+'</button>';
   }
   function exState(v,rowEx){return exOn()&&(rowEx||v===true)?'on':v==='dine'?'dine':'off'}
@@ -632,7 +632,7 @@ h1{font-size:17px}
       var past=runMode&&d.id<todayId, isToday=d.id===todayId;
       if(isToday)cls+=' todaycell';
       if(snapWork&&d.id>=todayId&&d.id>=snapWork.from&&d.id<=snapWork.to&&!!snapWork.set[d.id]!==isWorkDay(d.id))cls+=' diffcell';
-      var dn='<span class="drow"><small class="d '+kind+'">'+d.n+'</small>'+(m==='edu'?'<small class="tag">교육</small>':'')+(d.n===fdNum?'<small class="fd">패데</small>':'')+'</span>';
+      var dn='<span class="drow"><small class="d '+kind+'">'+d.n+'</small>'+(m==='edu'?'<small class="tag">교육</small>':(c.sc&&c.sc[d.id]&&/^[0-9]+$/.test(m||'')?'<small class="tag">일정</small>':''))+(d.n===fdNum?'<small class="fd">패데</small>':'')+'</span>';
       var restText=(m==='off'?'휴무':m==='leave'?'연차':(HOL[d.id]&&(!d.we||holSat)?'휴일':'–'));
       var am=runMode?runMin(d.id):0,isEdu=m==='edu';
       if(runMode&&(past||isToday)&&am>0){
@@ -676,7 +676,7 @@ h1{font-size:17px}
     var c=cur(),ex=e.target.closest('button[data-ex]');
     if(ex){
       var xid=ex.dataset.ex,st=ex.dataset.s;
-      // 올림: 운동함 → 회식/약속 → 안함 → 운동함 / 내림은 반대. 운동·회식/약속은 설정에서 따로 켜고 끄고, 토요일은 운동만
+      // 올림: 운동함 → 약속 → 안함 → 운동함 / 내림은 반대. 운동·약속은 설정에서 따로 켜고 끄고, 토요일은 운동만
       var dw=new Date(xid+'T00:00:00').getDay(),we2=dw===0||dw===6,lst=[];
       if(exOn()&&(!we2||(dw===6&&!HOL[xid])))lst.push('on');
       if(dineOn()&&!we2)lst.push('dine');
@@ -699,9 +699,12 @@ h1{font-size:17px}
     var id=t.dataset.id,d=new Date(id+'T00:00:00'),we=d.getDay()===0||d.getDay()===6,code=c.d[id]||'',next;
     if(leaveMode){
       if(we||HOL[id]){setHint('주말·공휴일에는 연차·교육이 없어요.');return}
-      if(code==='leave')next='edu';else if(code==='edu')next='';else next='leave';
+      var isSch=!!(c.sc&&c.sc[id])&&/^[0-9]+$/.test(code);   // 일정: 근무시간 4로 시작하는 날(표시만 붙은 보통 근무시간)
+      if(code==='leave')next='edu';else if(code==='edu')next='sch';else if(isSch)next='';else next='leave';
       lockBefore(id);delete c.lk[id];
-      if(next)c.d[id]=next;else delete c.d[id];
+      if(!c.sc)c.sc={};
+      if(next==='sch'){c.d[id]='4';c.sc[id]=true}
+      else{if(next)c.d[id]=next;else delete c.d[id];delete c.sc[id]}
       save();render();return;
     }
     if(runMode){
@@ -722,7 +725,7 @@ h1{font-size:17px}
     }else next=(i<0&&we)?'8':cyc[(i+1)%cyc.length];   // 올림: 주말 첫 터치는 8부터
     if(c.lk[id]){i=cyc.indexOf(c.d[id]||'')}   // 고정돼 있던 값에서 이어서 돌림
     lockBefore(id);delete c.lk[id];
-    if(next)c.d[id]=next;else delete c.d[id];
+    if(next)c.d[id]=next;else{delete c.d[id];if(c.sc)delete c.sc[id]}
     save();render();
   });
 
@@ -886,8 +889,8 @@ h1{font-size:17px}
     if(!db)try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}
   }
   function clearFuture(c,fields){var t=idOf(new Date());fields.forEach(function(f){var o=c[f]||{},n={};Object.keys(o).forEach(function(i){if(i<t)n[i]=o[i]});c[f]=n})}
-  twoStep('edits',$('resetEdits'),'직접수정 지우기',function(c){freezePast();clearFuture(c,['d','x','lk']);delete c.xf});
-  twoStep('month',$('resetMonth'),'이번달 초기화',function(c){freezePast();clearFuture(c,['d','x','lk','a','ax']);delete c.xf});
+  twoStep('edits',$('resetEdits'),'직접수정 지우기',function(c){freezePast();clearFuture(c,['d','x','lk','sc']);delete c.xf});
+  twoStep('month',$('resetMonth'),'이번달 초기화',function(c){freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf});
   $('calBtn').addEventListener('click',function(){
     if(!db||ro()||$('calBtn').disabled)return;
     var t=new Date();
