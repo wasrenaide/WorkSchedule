@@ -116,7 +116,7 @@
   function open() {
     var o = read();
     back = document.createElement('div'); back.id = 'setBack';
-    back.addEventListener('click', function (e) { if (e.target === back) close(); });
+    // 설정 창은 바깥을 눌러도 닫히지 않고, '닫기' 버튼으로만 닫음(실수로 닫히는 것 방지)
     var h = '<div id="setBox"><h2>설정</h2>';
     ITEMS.forEach(function (it) {
       var dis = it.needs && !on(o, it.needs);
