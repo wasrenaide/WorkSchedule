@@ -298,14 +298,16 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.10</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.11</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
     · 날짜 아래 칸은 누를 때마다 빈칸 → 운동(초록) → 약속(주황) → 빈칸. 약속은 그날 8시간 고정이고, 토요일은 운동만 돼요. ▲ 올림 / ▼ 내림으로 순서 방향을 바꿔요.<br>
     · 연차·교육: 켜고 평일을 누르면 연차 → 교육(8시간) → 일정(4시간으로 시작, 이후 바꿀 수 있어요) → 해제.<br>
     · 수기입력: 돌림판으로 시간을 직접 골라요.<br>
-    · 운동은 한 달 7번이 목표예요. 모자라면 빨갛게 알려줘요.<br><br>
+    · 운동은 한 달 7번이 목표예요(⚙ 설정에서 바꿔요). 모자라면 빨갛게 알려줘요. 토요일 운동도 이 횟수에 들어가요.<br>
+    · 토요일 근무를 새로 넣으면 운동도 자동으로 같이 들어가요. 목표 횟수를 넘으면 마지막 평일 운동 하나를 빼 줘요.<br>
+    · 주말 근무를 유지하고 초기화하면, 평일 운동은 (목표 − 유지한 토요일 운동)번만 짜요.<br><br>
     <b>새 달 시작</b><br>
     · 처음 여는 달은 달력이 흐려지고 <b>이 달 설정하기</b>가 떠요. 둘 중 하나를 골라요.<br>
     · <b>최소로 시작</b>: 평일 8시간. 다른 날을 바꿔도 나머지는 그대로예요.<br>
@@ -408,8 +410,11 @@ h1{font-size:17px}
   var APPSET=(function(){try{var o=JSON.parse(localStorage.getItem('app-settings-v1'));return o&&typeof o==='object'?o:{}}catch(e){return {}}})();   // 앱 설정: ex(운동) / dine(회식·약속), false면 끔. 토요일 운동은 운동에 포함(운동이 켜져 있으면 휴일 아닌 토요일에도 열림). 웹에는 없음 → 모두 켜짐
   window.addEventListener('settingschanged',function(){   // 설정 창에서 바꾼 값을 화면을 새로 불러오지 않고 바로 적용
     try{APPSET=JSON.parse(localStorage.getItem('app-settings-v1'))||{}}catch(e){APPSET={}}
+    syncExNeed();
     render();
   });
+  function syncExNeed(){EX_NEED=FILLUI?Math.min(12,Math.max(1,parseInt(APPSET.exN,10)||7)):7}   // 운동 목표 횟수(앱 설정, 기본 7)
+  syncExNeed();
   function exOn(){return APPSET.ex!==false}
   var FILLUI=window.__fillUI===true;   // 앱에서만 켜짐: 안 열어본 달 설정 팝업 + 월별 자동 채우기 모드(min/max). 웹에는 없음 → 예전 방식(max)
   // 선호 근무시간(앱 설정 pref:{ex:[운동 있는 날 1,2,3순위], no:[운동 없는 날 1,2,3순위]}): 최대 모드에서 월 최대에 딱 맞는 조합 중 높은 순위를 가장 많이 씀
@@ -491,7 +496,7 @@ h1{font-size:17px}
     }
     if(!N||err)return result();
     var cand=[];auto.forEach(function(d,k){if(exf[d.id]===undefined)cand.push(k)});
-    var nBase=(frozen||!exOn())?0:Math.min(EX_NEED,cand.length);   // 운동을 직접 만지기 전에는 기본 7일을 자동 배정, 만진 뒤에는 자동 배정·자동 추가 없음
+    var nBase=(frozen||!exOn())?0:Math.min(FILLUI?Math.max(0,EX_NEED-forced):EX_NEED,cand.length);   // 운동을 직접 만지기 전에는 기본 7일을 자동 배정, 만진 뒤에는 자동 배정·자동 추가 없음
     var ex={},k,c;
     auto.forEach(function(d,kk){if(exf[d.id]===true)ex[kk]=1});
     for(c=0;c<nBase;c++)ex[cand[c]]=1;
@@ -851,8 +856,10 @@ h1{font-size:17px}
       else next=cyc[cyc.length-1];
     }else next=(i<0&&we)?'8':cyc[(i+1)%cyc.length];   // 올림: 주말 첫 터치는 8부터
     if(c.lk[id]){i=cyc.indexOf(c.d[id]||'')}   // 고정돼 있던 값에서 이어서 돌림
+    var wasEmpty=!code;
     lockBefore(id);delete c.lk[id];
     if(next)c.d[id]=next;else{delete c.d[id];if(c.sc)delete c.sc[id]}
+    autoSatEx(c,id,wasEmpty,!!next);
     save();render();
   });
 
@@ -967,9 +974,10 @@ h1{font-size:17px}
       closeSheet();csSave();renderCalc();return;
     }
     if(sheetMode==='plan'){
-      var v=wheelItems[wIdx(wheelEls[0])].v;
+      var v=wheelItems[wIdx(wheelEls[0])].v,wasE=!c.d[id];
       lockBefore(id);delete c.lk[id];
       if(v)c.d[id]=v;else delete c.d[id];
+      autoSatEx(c,id,wasE,!!v);
     }else{
       var mins=wIdx(wheelEls[0])*60+wIdx(wheelEls[1]);
       c.a[id]=mins;   // 0:00도 직접 입력한 값으로 저장
@@ -1174,6 +1182,20 @@ h1{font-size:17px}
       $('fillOpen').addEventListener('click',openFillSheet);
     }
     box.hidden=!need;$('cal').classList.toggle('fillneed',need);document.body.classList.toggle('fillneedb',need);
+  }
+  // 앱: 토요일 근무를 새로 넣으면 운동도 기본으로 함께 넣음. 목표 횟수를 넘으면 마지막 평일 운동 하나를 뺌. 토요일 근무를 없애면 운동 표시도 같이 없앰
+  function autoSatEx(c,id,wasEmpty,hasNow){
+    if(!FILLUI||!exOn())return;
+    var dt=new Date(id+'T00:00:00');if(dt.getDay()!==6||HOL[id])return;
+    if(!hasNow){delete c.x[id];return}
+    if(!wasEmpty||c.x[id]!==undefined)return;
+    c.x[id]=true;
+    if(!c.xf)return;   // 아직 자동 배정 상태면 계획이 목표 횟수에 맞춰 평일 운동을 알아서 줄임
+    var ds=monthDays(),r=buildPlan(ds,c.d,c.x,autoPrior(),capOf(ds.length),c.xf),t=idOf(new Date());
+    if(r.exN>EX_NEED){
+      var cand=Object.keys(c.x).filter(function(k){var w=new Date(k+'T00:00:00').getDay();return c.x[k]===true&&k!==id&&k>=t&&w>=1&&w<=5}).sort().reverse();
+      if(cand.length){delete c.x[cand[0]];setHint('운동은 한 달 '+EX_NEED+'번이라서 마지막 평일 운동('+(+cand[0].slice(8))+'일)을 뺐어요.')}
+    }
   }
   // 오늘 이후 주말(토·일)에 입력해 둔 근무 날짜들
   function weekendWork(c){

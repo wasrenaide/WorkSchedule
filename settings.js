@@ -22,6 +22,7 @@
     '#setBox .it{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}' +
     '#setBox .it .t{flex:1}#setBox .it b{font-size:16px}#setBox .it small{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:2px}' +
     '#setBox .it.dis{opacity:.4}' +
+    '#setBox .it select.exn{flex:none;width:92px;font:inherit;font-size:15px;padding:8px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}' +
     '#setBox .sw{position:relative;width:50px;height:30px;flex:none;border-radius:15px;border:0;background:var(--line);padding:0}' +
     '#setBox .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .15s}' +
     '#setBox .sw.on{background:var(--accent)}#setBox .sw.on::after{left:23px}' +
@@ -154,6 +155,11 @@
       h += '<div class="it' + (dis ? ' dis' : '') + '"><div class="t"><b>' + it.name + '</b><small>' + it.desc + '</small></div>' +
         '<button type="button" class="sw' + (on(o, it.k) ? ' on' : '') + '" data-k="' + it.k + '" ' + (dis ? 'disabled' : '') + ' aria-label="' + it.name + '"></button></div>';
     });
+    var exNv = Math.min(12, Math.max(1, parseInt(o.exN, 10) || 7));
+    if (on(o, 'ex')) {   // 운동 목표 횟수(운동을 켠 경우에만)
+      var eo = ''; for (var q = 1; q <= 12; q++) eo += '<option value="' + q + '"' + (q === exNv ? ' selected' : '') + '>' + q + '번</option>';
+      h += '<div class="it"><div class="t"><b>운동 목표 횟수</b><small>한 달에 운동하려는 횟수예요. 기본은 7번이고, 토요일 운동도 이 횟수에 들어가요. 모자라면 빨갛게 알려줘요.</small></div><select class="exn" id="exNsel">' + eo + '</select></div>';
+    }
     var pf = o.pref || {}, pe = (pf.ex || [9, 10, 7]), pn = (pf.no || [10, 11, 8]), exOnS = on(o, 'ex');
     function opts(sel, lo, hi, none) { var s = none ? '<option value="">없음</option>' : ''; for (var v = lo; v <= hi; v++) s += '<option value="' + v + '"' + (+sel === v ? ' selected' : '') + '>' + v + '시간</option>'; return s; }
     var head = '<div class="pr hd"><span></span><em class="r1">1순위<i>가장 선호</i></em><em class="r2">2순위<i>중간</i></em><em class="r3">3순위<i>가장 낮음</i></em></div>';
@@ -170,6 +176,8 @@
       '<button type="button" class="close" id="setClose">닫기</button></div>';
     back.innerHTML = h;
     var bx1 = document.getElementById('setBox'); if (bx1) bx1.scrollTop = prevTop;
+    var exs = document.getElementById('exNsel');
+    if (exs) exs.addEventListener('change', function () { var cur = read(), v = +exs.value; if (v === 7) delete cur.exN; else cur.exN = v; write(cur); applyNow(); });
     document.getElementById('setClose').addEventListener('click', close);
     document.getElementById('setClose2').addEventListener('click', close);   // 맨 위 닫기(스크롤해도 위에 붙어 있음)
     document.getElementById('updBtn').addEventListener('click', checkUpdate);
