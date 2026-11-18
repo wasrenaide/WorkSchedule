@@ -39,6 +39,7 @@
   }
   function apply(o) {
     quiet = true;
+    try { localStorage.removeItem('undo-stack-v1'); } catch (e) {}   // 불러오기/되돌리기로 데이터가 통째로 바뀌면 단계별 되돌리기 기록은 비움
     Object.keys(DATA_KEYS).forEach(function (k) {
       try { if (o && o[k] != null) localStorage.setItem(DATA_KEYS[k], o[k]); else if (k !== 'settings') localStorage.removeItem(DATA_KEYS[k]); } catch (e) {}   // 설정은 서버에 없으면(예전 저장본) 이 폰 설정을 그대로 둠
     });

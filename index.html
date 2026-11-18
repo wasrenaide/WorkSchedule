@@ -279,7 +279,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.4.0</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.4.1</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
@@ -354,7 +354,7 @@ h1{font-size:17px}
   var dirty={},writing=false;
   function canon(o){return JSON.stringify(o,function(k,v){if(v&&typeof v==='object'&&!Array.isArray(v)){var r={};Object.keys(v).sort().forEach(function(x){r[x]=v[x]});return r}return v})}
   function save(){
-    if(!db){try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}return}
+    if(!db){recUndo();try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}return}
     dirty[key()]=true;flush();
   }
   function flush(){
@@ -575,7 +575,7 @@ h1{font-size:17px}
     $('runMode').textContent=runMode?'실행 모드':'계획 모드';
     $('runMode').setAttribute('aria-pressed',runMode);
     $('handMode').disabled=runMode;
-    $('resetEdits').textContent=calcMode?'입력 초기화':'수정 지우기';$('resetMonth').textContent='월 초기화';$('resetMonth').hidden=calcMode||ro();
+    $('resetEdits').textContent=calcMode?'입력 초기화':(FILLUI?'↶ 되돌리기':'수정 지우기');$('resetEdits').disabled=!!(FILLUI&&!calcMode&&!undoStack.length);$('resetMonth').textContent='월 초기화';$('resetMonth').hidden=calcMode||ro();
     var tm=0,warnEx=false,h='',b,r=buildPlan(ds,c.d,c.x,autoPrior(),cap,c.xf),msg='',okMsg=false,todayId=idOf(new Date());
     // 실행 모드: 지난 날(오늘 전)은 기록이 없으면 계획대로 미리 채워 두고, 눌러서 고치게 함
     function runMin(id){
@@ -906,8 +906,13 @@ h1{font-size:17px}
     if(!db)try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}
   }
   function clearFuture(c,fields){var t=idOf(new Date());fields.forEach(function(f){var o=c[f]||{},n={};Object.keys(o).forEach(function(i){if(i<t)n[i]=o[i]});c[f]=n})}
-  twoStep('edits',$('resetEdits'),'직접수정 지우기',function(c){freezePast();clearFuture(c,['d','x','lk','sc']);delete c.xf});
-  twoStep('month',$('resetMonth'),'이번달 초기화',function(c){freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf});
+  if(FILLUI){
+    $('resetEdits').addEventListener('click',function(){if(calcMode){calcDefault();renderCalc();return}doUndo()});   // 앱: 수정 지우기 → 한 단계 되돌리기
+    $('resetMonth').addEventListener('click',function(){openFillSheet('reset')});                                    // 앱: 월 초기화 → 최소/최대 선택 팝업
+  }else{
+    twoStep('edits',$('resetEdits'),'직접수정 지우기',function(c){freezePast();clearFuture(c,['d','x','lk','sc']);delete c.xf});
+    twoStep('month',$('resetMonth'),'이번달 초기화',function(c){freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf});
+  }
   $('calBtn').addEventListener('click',function(){
     if(!db||ro()||$('calBtn').disabled)return;
     var t=new Date();
@@ -941,7 +946,7 @@ h1{font-size:17px}
       if(ch&&db)dirty[k]=true;
     })}finally{vy=sy;vm=sm}
   }
-  function persistAll(){if(db)flush();else try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}}
+  function persistAll(){if(db)flush();else{try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(e){}syncPrev()}}
   function saveLim(){
     if(db)db.collection('sync').doc('limit').set({h:LIM,pend:limPend}).catch(function(){setSync('저장하지 못했어요. 연결을 확인해 주세요',true)});
     else try{localStorage.setItem('plan-limit-v1',JSON.stringify({h:LIM,pend:limPend}))}catch(e){}
@@ -982,6 +987,40 @@ h1{font-size:17px}
   $('nm').addEventListener('click',function(){vm++;if(vm>11){vm=0;vy++}render()});
 
   // ----- 저장소: 공유 db(있으면) / 이 기기(없으면) -----
+  // ===== 앱: 되돌리기(최근 50단계). 저장할 때마다 '바뀐 달의 이전 상태'를 기록하고, 누를 때마다 한 단계씩 뒤로 =====
+  var UK='undo-stack-v1',UMAX=50,undoStack=[],prevMap={};
+  function emptyMonth(o){return !o||Object.keys(o).every(function(f){var v=o[f];return v&&typeof v==='object'&&!Array.isArray(v)&&!Object.keys(v).length})}
+  function monthMap(){var o={};Object.keys(all).forEach(function(k){if(!emptyMonth(all[k]))o[k]=JSON.stringify(all[k])});return o}
+  function syncPrev(){if(FILLUI)prevMap=monthMap()}
+  function loadUndo(){try{var r=JSON.parse(localStorage.getItem(UK));undoStack=Array.isArray(r)?r:[]}catch(e){undoStack=[]}}
+  function saveUndo(){
+    try{localStorage.setItem(UK,JSON.stringify(undoStack))}
+    catch(e){undoStack.splice(0,Math.ceil(undoStack.length/2));try{localStorage.setItem(UK,JSON.stringify(undoStack))}catch(e2){}}
+  }
+  function recUndo(){
+    if(!FILLUI)return;
+    var nm=monthMap(),m={},ch=false;
+    Object.keys(nm).concat(Object.keys(prevMap)).forEach(function(k){
+      if(nm[k]!==prevMap[k]&&!(k in m)){m[k]=prevMap[k]===undefined?null:prevMap[k];ch=true}
+    });
+    if(ch){undoStack.push({t:Date.now(),m:m});if(undoStack.length>UMAX)undoStack.shift();saveUndo()}
+    prevMap=nm;
+  }
+  function doUndo(){
+    if(!undoStack.length){setHint('되돌릴 변경이 없어요.');return}
+    var e=undoStack.pop(),first=null;
+    Object.keys(e.m).forEach(function(k){
+      if(e.m[k]===null)delete all[k];else all[k]=JSON.parse(e.m[k]);
+      if(!first)first=k;
+    });
+    saveUndo();
+    try{localStorage.setItem(LKEY,JSON.stringify(all))}catch(x){}
+    syncPrev();
+    if(first){var p=first.split('-');vy=+p[0];vm=+p[1]-1}   // 바뀐 달로 이동
+    render();
+    setHint('한 단계 되돌렸어요'+(undoStack.length?' (더 되돌릴 수 있는 단계 '+undoStack.length+'개)':' (더 되돌릴 단계가 없어요)'));
+  }
+
   // ===== 앱: 안 열어본 달 설정 팝업 / 기존 데이터 그대로 보존 =====
   function monthNeedsSetup(){
     if(!FILLUI||runMode||calcMode||ro())return false;
@@ -1000,18 +1039,21 @@ h1{font-size:17px}
     box.hidden=!need;$('cal').classList.toggle('fillneed',need);document.body.classList.toggle('fillneedb',need);
   }
   function closeFillSheet(){var e=$('fillSheet');if(e)e.remove()}
-  function openFillSheet(){
+  function openFillSheet(kind){
     closeFillSheet();
-    var cap=capOf(monthDays().length),e=document.createElement('div');
+    var reset=kind==='reset',cap=capOf(monthDays().length),e=document.createElement('div');
     e.className='sheet';e.id='fillSheet';
-    e.innerHTML='<div class="backdrop" id="fillBg"></div><div class="panel" role="dialog" aria-modal="true"><h2>'+(vm+1)+'월은 어떻게 시작할까요?</h2>'+
+    e.innerHTML='<div class="backdrop" id="fillBg"></div><div class="panel" role="dialog" aria-modal="true"><h2>'+(vm+1)+(reset?'월 초기화':'월은 어떻게 시작할까요?')+'</h2>'+
+      (reset?'<p class="note" style="text-align:center">오늘부터의 계획과 기록이 지워지고, 아래 방식으로 다시 시작해요. 오늘 이전 기록은 그대로예요. 하고 나서도 ‘↶ 되돌리기’로 한 단계 되돌릴 수 있어요.</p>':'')+
       '<button type="button" class="fopt" data-m="min"><b>최소로 시작</b><small>평일 8시간으로 채워요(주 40시간 기준). 다른 날을 고쳐도 나머지 숫자는 자동으로 안 바뀌어요.</small></button>'+
       '<button type="button" class="fopt" data-m="max"><b>최대로 채우기</b><small>월 최대 '+cap+'시간에 맞춰 자동으로 나눠요. 한 날을 고치면 뒤쪽 날짜가 다시 맞춰져요.</small></button>'+
-      '<button type="button" class="ghost" id="fillCancel">나중에</button></div>';
+      '<button type="button" class="ghost" id="fillCancel">'+(reset?'취소':'나중에')+'</button></div>';
     document.body.appendChild(e);
     $('fillBg').addEventListener('click',closeFillSheet);$('fillCancel').addEventListener('click',closeFillSheet);
     [].forEach.call(e.querySelectorAll('.fopt'),function(b){b.addEventListener('click',function(){
-      var c=cur();c.fm=b.getAttribute('data-m');save();closeFillSheet();render();
+      var c=cur();
+      if(reset){freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf}   // 오늘 이전은 지금 값으로 굳힌 뒤 오늘부터 다시
+      c.fm=b.getAttribute('data-m');save();closeFillSheet();render();
     })});
   }
   // 예전부터 입력해 둔 달: 지금 보이는 시간을 그대로 굳히고 '최소' 모드(자동으로 안 바뀜)로 전환
@@ -1033,7 +1075,7 @@ h1{font-size:17px}
   function startLocal(){
     try{var raw=localStorage.getItem(LKEY);if(raw)all=JSON.parse(raw)||{}}catch(e){}
     try{var rl=localStorage.getItem('plan-limit-v1');if(rl==='64'){LIM=64}else if(rl&&rl.charAt(0)==='{'){var jl=JSON.parse(rl);LIM=jl.h===64?64:52;limPend=!!jl.pend}}catch(e){}
-    setSync('이 기기에만 저장 중');migrateFill();render();
+    setSync('이 기기에만 저장 중');migrateFill();loadUndo();syncPrev();render();
   }
   function startDb(d){
     db=d;setSync('불러오는 중…');
