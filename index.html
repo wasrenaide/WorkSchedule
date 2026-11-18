@@ -298,7 +298,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.9</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.10</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -352,6 +352,8 @@ h1{font-size:17px}
   var WEEKDAY_CYCLE=['7','8','9','10','11','12','13'], HOLIDAY_CYCLE=WEEKDAY_CYCLE, WEEKEND_CYCLE=['','8','10','11','6'];   // 평일·공휴일 터치는 숫자만 돌림, 주말은 마지막 다음에 쉼으로 돌아옴. 휴무·휴일·자동은 수기입력 돌림판
   function capOf(n){return (LIM===64?CAPS64:CAPS)[n]}
   var now=new Date(), vy=now.getFullYear(), vm=now.getMonth();
+  // 저장 안 된 변경 되돌리기·서버에서 불러오기로 화면을 새로 불러온 직후에는, 보던 달을 그대로 유지(평소 앱을 열 때는 오늘이 있는 달)
+  try{if(sessionStorage.getItem('restore-view-v1')==='1'){sessionStorage.removeItem('restore-view-v1');var vk=sessionStorage.getItem('view-month-v1');if(/^\d{4}-\d{2}$/.test(vk||'')){vy=+vk.slice(0,4);vm=+vk.slice(5,7)-1}}}catch(e){}
   var HISTORY=[];   // 예비: 공유 저장소에 기록이 없는 과거 근무일(YYYY-MM-DD)
   var HOL={"2026-01-01": "신정연휴", "2026-02-16": "설날 전날", "2026-02-17": "설날", "2026-02-18": "설날 다음날", "2026-03-01": "삼일절", "2026-03-02": "삼일절 대체 휴일", "2026-05-01": "노동절", "2026-05-05": "어린이날", "2026-05-24": "부처님오신날", "2026-05-25": "부처님오신날 대체 휴일", "2026-06-03": "지방선거일", "2026-06-06": "현충일", "2026-07-17": "제헌절", "2026-08-15": "광복절", "2026-08-17": "광복절 대체 휴일", "2026-09-24": "추석 전날", "2026-09-25": "추석", "2026-09-26": "추석 다음날", "2026-10-03": "개천절", "2026-10-05": "개천절 대체 휴일", "2026-10-09": "한글날", "2026-12-25": "기독탄신일", "2027-01-01": "신정연휴", "2027-02-06": "설날 전날", "2027-02-07": "설날", "2027-02-08": "설날 다음날", "2027-02-09": "설날 대체 휴일", "2027-03-01": "삼일절", "2027-05-01": "노동절", "2027-05-03": "노동절 대체 휴일", "2027-05-05": "어린이날", "2027-05-13": "부처님오신날", "2027-06-06": "현충일", "2027-07-17": "제헌절", "2027-07-19": "제헌절 대체 휴일", "2027-08-15": "광복절", "2027-08-16": "광복절 대체 휴일", "2027-09-14": "추석 전날", "2027-09-15": "추석", "2027-09-16": "추석 다음날", "2027-10-03": "개천절", "2027-10-04": "개천절 대체 휴일", "2027-10-09": "한글날", "2027-10-11": "한글날 대체 휴일", "2027-12-25": "기독탄신일", "2027-12-27": "기독탄신일 대체 휴일", "2028-01-01": "신정연휴", "2028-01-26": "설날 전날", "2028-01-27": "설날", "2028-01-28": "설날 다음날", "2028-03-01": "삼일절", "2028-04-12": "국회의원 선거일", "2028-05-01": "노동절", "2028-05-02": "부처님오신날", "2028-05-05": "어린이날", "2028-06-06": "현충일", "2028-07-17": "제헌절", "2028-08-15": "광복절", "2028-10-02": "추석 전날", "2028-10-03": "개천절 · 추석", "2028-10-04": "추석 다음날", "2028-10-05": "추석 대체 휴일", "2028-10-09": "한글날", "2028-12-25": "기독탄신일"};  // 대한민국 공휴일(holidays-kr.json)
   var leaveMode=false, handMode=false, runMode=false, calcMode=false, dirDown=false, roPerm=false;   // roPerm: 수정 권한이 없는 사람
@@ -787,6 +789,7 @@ h1{font-size:17px}
     lastCalH=$('dow').offsetHeight+parseFloat(getComputedStyle(document.querySelector('.calc')).rowGap||0)+$('cal').offsetHeight;
     $('cal').classList.toggle('warnex',warnEx);
     updateFillBox();ensureBasisUI();
+    try{sessionStorage.setItem('view-month-v1',key())}catch(e){}   // 지금 보는 달 기억(새로 불러온 뒤 복원용)
     $('cal').classList.toggle('leavemode',leaveMode);
     var calcEl=document.querySelector('.calc');
     calcEl.classList.toggle('under',!runMode&&tm<cap*60&&!lowMin);   // 최대 미만: 초록 (최소 미달이면 경고색이 우선)

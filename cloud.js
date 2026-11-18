@@ -113,14 +113,16 @@
     bind('uYes', doUndo);
     bind('uNo', close);
   }
+  // 화면을 새로 불러오기 전에, 보던 달을 유지하라고 표시(plan.html 이 시작할 때 읽음)
+  function keepView() { try { sessionStorage.setItem('restore-view-v1', '1'); } catch (e) {} }
   function doUndo() {
     var snap = readSnap();
-    if (snap) { apply(snap); st.edited = 0; writeSt(); location.reload(); return; }
+    if (snap) { apply(snap); st.edited = 0; writeSt(); keepView(); location.reload(); return; }
     busy(true);   // 사본이 없으면(예전에 저장한 경우) 서버 저장본으로
     rpc('app_load', { p_name: st.name, p_pin: st.pin }).then(function (r) {
       if (!r.ok) { show(errText(r), true); return; }
       if (!r.data) { show('되돌릴 저장본이 서버에 없어요.', true); return; }
-      apply(r.data); writeSnap(r.data); st.base = r.version; st.edited = 0; st.atMs = Date.now(); writeSt(); location.reload();
+      apply(r.data); writeSnap(r.data); st.base = r.version; st.edited = 0; st.atMs = Date.now(); writeSt(); keepView(); location.reload();
     });
   }
   function isDirty() {
@@ -264,7 +266,7 @@
       if (!r.data) { show('서버에 저장된 데이터가 아직 없어요.', true); return; }
       if (!confirm('이 폰의 데이터가 서버 데이터(버전 ' + r.version + ')로 바뀌어요. 계속할까요?')) { show(''); return; }
       apply(r.data); writeSnap(r.data); st.base = r.version; st.at = now(); st.atMs = Date.now(); st.edited = 0; writeSt();
-      location.reload();
+      keepView(); location.reload();
     });
   }
   function changePin() {
