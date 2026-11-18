@@ -262,9 +262,7 @@ h1{font-size:17px}
 @media (min-width:600px){.calbar{padding:10px 16px;font-size:17px}.calbar small{font-size:14px}}
 </style>
 <script>window.__fillUI=true</script>
-<style>.app{padding-top:calc(env(safe-area-inset-top,0px) + 6px)}
-@media (display-mode:standalone){.app{padding-top:max(calc(env(safe-area-inset-top,0px) + 6px),52px)}}
-/* 표시 안 한 운동/회식·약속 칸은 빈칸(색·글자 없음). 눌러서 켜고 끔 */
+<style>/* 표시 안 한 운동/회식·약속 칸은 빈칸(색·글자 없음). 눌러서 켜고 끔 */
 .cell .ex[data-s=off],.warnex .cell:not(.past) .ex[data-s=off]{background:transparent;color:transparent;border-top-color:transparent;font-weight:400}</style>
 </head>
 <body>
@@ -309,7 +307,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.16</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.17</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
