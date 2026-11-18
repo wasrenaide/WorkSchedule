@@ -17,7 +17,7 @@
 
   var st = readSt();
   function readSt() { try { return JSON.parse(localStorage.getItem(SK)) || {}; } catch (e) { return {}; } }
-  function writeSt() { try { localStorage.setItem(SK, JSON.stringify(st)); } catch (e) {} }
+  function writeSt() { try { localStorage.setItem(SK, JSON.stringify(st)); } catch (e) {} if (typeof paintName === 'function' && syncEl !== undefined) paintName(); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   function rpc(fn, args) {
@@ -38,9 +38,11 @@
     return o;
   }
   function apply(o) {
+    quiet = true;
     Object.keys(DATA_KEYS).forEach(function (k) {
       try { if (o && o[k] != null) localStorage.setItem(DATA_KEYS[k], o[k]); else localStorage.removeItem(DATA_KEYS[k]); } catch (e) {}
     });
+    quiet = false;
   }
 
   /* ---------- 화면 ---------- */
@@ -58,7 +60,13 @@
     '#cloudBox button.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}' +
     '#cloudBox .msg{font-size:14px;margin:8px 0;padding:8px 10px;border-radius:8px;background:var(--bg)}' +
     '#cloudBox .msg.bad{color:#c62828}' +
-    '#cloudBox .msg.ok{color:#2e7d32}';
+    '#cloudBox .msg.ok{color:#2e7d32}' +
+    '#sync.cdirty{color:#e65100!important;font-weight:700!important}' +
+    '#cloudOpen.dirty{background:#fff3e0;border-color:#ef6c00;color:#e65100;font-weight:700}' +
+    '@media (prefers-color-scheme:dark){#cloudOpen.dirty{background:#3a2610;color:#ffb74d;border-color:#ef6c00}#sync.cdirty{color:#ffb74d!important}}' +
+    '#cloudBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:none;align-items:center;justify-content:center;gap:10px;padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));background:#ef6c00;color:#fff;font-size:14px;font-weight:700;box-shadow:0 -2px 8px rgba(0,0,0,.25)}' +
+    '#cloudBar button{font:inherit;font-size:14px;font-weight:700;padding:6px 14px;border-radius:999px;border:0;background:#fff;color:#e65100}' +
+    'body.cbar #cloudBar{display:flex}body.cbar{padding-bottom:56px}';
   document.head.appendChild(css);
 
   var row = document.createElement('div');
@@ -66,7 +74,63 @@
   row.innerHTML = '<button id="cloudOpen" type="button"></button>';
   var foot = document.querySelector('.foot');
   if (foot && foot.parentNode) foot.parentNode.insertBefore(row, foot.nextSibling); else document.body.appendChild(row);
-  function label() { document.getElementById('cloudOpen').textContent = st.name ? '☁ ' + st.name + ' · 저장/불러오기' : '☁ 서버 저장/불러오기'; }
+  var bar = document.createElement('div');
+  bar.id = 'cloudBar';
+  bar.innerHTML = '<span>● 서버에 저장 안 됨</span><button type="button" id="cloudBarBtn">지금 저장</button>';
+  document.body.appendChild(bar);
+  document.getElementById('cloudBarBtn').addEventListener('click', quickSave);
+  function quickSave() {
+    var b = document.getElementById('cloudBarBtn'); b.disabled = true; b.textContent = '저장 중…';
+    rpc('app_save', { p_name: st.name, p_pin: st.pin, p_data: collect(), p_base: st.base || 0, p_force: false }).then(function (r) {
+      b.disabled = false; b.textContent = '지금 저장';
+      if (r.ok) { st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); return; }
+      show('');
+      if (r.error === 'conflict') conflict(r.version); else show(errText(r), true);
+    });
+  }
+  function isDirty() {
+    if (!st.name) return false;
+    if ((st.edited || 0) > (st.atMs || 0)) return true;
+    if (!st.atMs && !st.at) { try { return localStorage.getItem(DATA_KEYS.inputs) !== null; } catch (e) { return false; } }
+    return false;
+  }
+  function label() { var d = isDirty(), o = document.getElementById('cloudOpen');
+    o.textContent = st.name ? (d ? '● 저장 필요 · ☁ ' : '☁ ') + st.name + ' · 저장/불러오기' : '☁ 서버 저장/불러오기';
+    o.className = d ? 'dirty' : '';
+    paintName(); }
+
+  /* 제목 아래 작은 줄(#sync)에 '이름 · 서버 저장 시각'을 보여준다. 앱이 그 줄을 바꿔도 다시 덮어씀 */
+  var syncEl = document.getElementById('sync'), mine = '', painting = false;
+  function stamp(ms) { var d = new Date(ms); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function statusText() {
+    if (!st.name) return '서버 저장 안 함';
+    var t = st.atMs ? stamp(st.atMs) : st.at, d = isDirty();
+    if (!t) return st.name + ' · ' + (d ? '● ' : '') + '서버에 저장 전';
+    return d ? st.name + ' · ● 저장 필요 (마지막 ' + t + ')' : st.name + ' · 서버 저장 ' + t;
+  }
+  function paintName() {
+    if (!syncEl) return;
+    painting = true;
+    mine = statusText();
+    var d = isDirty();
+    syncEl.textContent = mine; syncEl.hidden = false; syncEl.className = d ? 'cdirty' : '';
+    var o = document.getElementById('cloudOpen');
+    if (o && st.name) { o.className = d ? 'dirty' : ''; o.textContent = (d ? '● 저장 필요 · ☁ ' : '☁ ') + st.name + ' · 저장/불러오기'; }
+    document.body.classList.toggle('cbar', d);
+    setTimeout(function () { painting = false; }, 0);
+  }
+  if (syncEl) {
+    new MutationObserver(function () {
+      if (painting || (syncEl.textContent === mine && !syncEl.hidden)) return;
+      paintName();
+    }).observe(syncEl, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class'] });
+  }
+  // 근무 데이터가 바뀐 시각을 기억해서 '저장 필요'를 판단 (불러오기로 바뀐 건 제외)
+  var quiet = false, origSet = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (k) {
+    origSet.apply(this, arguments);
+    if (!quiet && this === window.localStorage && k === DATA_KEYS.inputs && st.name) { st.edited = Date.now(); writeSt(); }
+  };
   label();
   document.getElementById('cloudOpen').addEventListener('click', function () { show(''); });
 
@@ -128,7 +192,7 @@
   function doSave(force) {
     busy(true);
     rpc('app_save', { p_name: st.name, p_pin: st.pin, p_data: collect(), p_base: st.base || 0, p_force: !!force }).then(function (r) {
-      if (r.ok) { st.base = r.version; st.at = now(); writeSt(); show('서버에 저장했어요. (버전 ' + r.version + ')'); return; }
+      if (r.ok) { st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); show('서버에 저장했어요. (버전 ' + r.version + ')'); return; }
       if (r.error === 'conflict') { conflict(r.version); return; }
       show(errText(r), true);
     });
@@ -149,7 +213,7 @@
       if (!r.ok) { show(errText(r), true); return; }
       if (!r.data) { show('서버에 저장된 데이터가 아직 없어요.', true); return; }
       if (!confirm('이 폰의 데이터가 서버 데이터(버전 ' + r.version + ')로 바뀌어요. 계속할까요?')) { show(''); return; }
-      apply(r.data); st.base = r.version; st.at = now(); writeSt();
+      apply(r.data); st.base = r.version; st.at = now(); st.atMs = Date.now(); st.edited = 0; writeSt();
       location.reload();
     });
   }

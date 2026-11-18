@@ -1,4 +1,4 @@
-const CACHE = 'wolgeunmu-dbdba858c5';
+const CACHE = 'wolgeunmu-f60ae47766';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './cloud.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
