@@ -136,6 +136,7 @@ body.lowminb{--bg:#ffefd9}
 .wkbar{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
 .wkbar small{color:var(--muted);font-size:12px;line-height:1.45}
 .wkseg{display:flex}
+#fillSheet .panel{max-height:92vh;overflow-y:auto}
 .wkseg button{flex:1;font:inherit;font-size:14px;padding:9px 6px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 .wkseg button:first-child{border-radius:10px 0 0 10px}.wkseg button:last-child{border-radius:0 10px 10px 0;border-left:0}
 .wkseg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
@@ -298,7 +299,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.11</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.12</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -312,7 +313,7 @@ h1{font-size:17px}
     · 처음 여는 달은 달력이 흐려지고 <b>이 달 설정하기</b>가 떠요. 둘 중 하나를 골라요.<br>
     · <b>최소로 시작</b>: 평일 8시간. 다른 날을 바꿔도 나머지는 그대로예요.<br>
     · <b>최대로 채우기</b>: 월 최대 시간에 맞춰 자동으로 나눠요. 하루 길이는 근무시간 + 운동 1시간으로 보고, 긴 날을 월초에 모아요.<br>
-    · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말에 근무를 넣어 뒀다면 <b>주말 근무 유지</b> / <b>주말도 초기화</b>를 먼저 골라요. <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
+    · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말 근무나 휴가(연차)를 넣어 뒀다면 <b>주말 근무 유지 / 주말도 초기화</b>, <b>휴가 유지 / 휴가도 초기화</b>를 먼저 골라요. <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
     <b>실행</b> 오늘까지의 실제 기록<br>
     · 지난 날과 오늘은 눌러서 시·분을 고쳐요. 오늘은 시간을 쓰기 전에도 운동 칸을 누를 수 있어요.<br>
     · 요약에 예상 합계와 차이가 나와요. 올림/내림은 쓰지 않아요.<br><br>
@@ -1203,26 +1204,34 @@ h1{font-size:17px}
     Object.keys(c.d).forEach(function(id){if(id>=t){var w=new Date(id+'T00:00:00').getDay();if((w===0||w===6)&&/^[0-9]+$/.test(c.d[id]))r.push(id)}});
     return r.sort();
   }
+  // 오늘 이후의 휴가(연차) 날짜들
+  function leaveDays(c){var t=idOf(new Date());return Object.keys(c.d).filter(function(id){return id>=t&&c.d[id]==='leave'}).sort()}
   function c0d(id){var c=cur();return c.d[id]}
   function closeFillSheet(){var e=$('fillSheet');if(e)e.remove()}
   function openFillSheet(kind){
     closeFillSheet();
     var reset=kind==='reset',cap=capOf(monthDays().length),e=document.createElement('div');
-    var wk=reset?weekendWork(cur()):[],keepWk=true;   // wk: 오늘 이후 주말에 입력해 둔 근무(날짜). keepWk: 초기화해도 유지할지
+    var wk=reset?weekendWork(cur()):[],keepWk=true,lv=reset?leaveDays(cur()):[],keepLv=true;   // lv: 오늘 이후 휴가(연차) 날짜. keepLv: 초기화해도 유지할지   // wk: 오늘 이후 주말에 입력해 둔 근무(날짜). keepWk: 초기화해도 유지할지
     e.className='sheet';e.id='fillSheet';
     e.innerHTML='<div class="backdrop" id="fillBg"></div><div class="panel" role="dialog" aria-modal="true"><h2>'+(vm+1)+(reset?'월 초기화':'월은 어떻게 시작할까요?')+'</h2>'+
       (reset?'<p class="note" style="text-align:center">오늘부터의 계획과 기록이 지워지고, 아래 방식으로 다시 시작해요. 오늘 이전 기록은 그대로예요. 하고 나서도 ‘↶ 되돌리기’로 한 단계 되돌릴 수 있어요.</p>':'')+
       (wk.length?'<div class="wkbar"><b>주말 근무가 '+wk.length+'일 있어요</b><small>'+wk.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+') '+c0d(id)+'시간'}).join(', ')+'</small><div class="wkseg"><button type="button" data-w="keep" aria-pressed="true">주말 근무 유지</button><button type="button" data-w="reset" aria-pressed="false">주말도 초기화</button></div><small id="wkHint">주말 근무는 그대로 두고, 평일만 다시 채워요.</small></div>':'')+
+      (lv.length?'<div class="wkbar"><b>휴가(연차)가 '+lv.length+'일 있어요</b><small>'+lv.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+')'}).join(', ')+'</small><div class="wkseg lv"><button type="button" data-l="keep" aria-pressed="true">휴가 유지</button><button type="button" data-l="reset" aria-pressed="false">휴가도 초기화</button></div><small id="lvHint">휴가는 그대로 두고, 나머지만 다시 채워요.</small></div>':'')+
       '<button type="button" class="fopt" data-m="min"><b>최소로 시작</b><small>평일 8시간으로 채워요(주 40시간 기준). 다른 날을 고쳐도 나머지 숫자는 자동으로 안 바뀌어요.</small></button>'+
       '<button type="button" class="fopt" data-m="max"><b>최대로 채우기</b><small>월 최대 '+cap+'시간에 맞춰 자동으로 나눠요. 한 날을 고치면 뒤쪽 날짜가 다시 맞춰져요.</small></button>'+
       (reset?'<button type="button" class="fopt fall" data-m="all"><b>이 달 전부 지우기</b><small>지난 날 기록까지 이 달의 모든 입력을 지우고, 설정 전 상태로 돌아가요. ↶ 되돌리기로 한 단계 되돌릴 수 있어요.</small></button>':'')+
       '<button type="button" class="ghost" id="fillCancel">'+(reset?'취소':'나중에')+'</button></div>';
     document.body.appendChild(e);
     $('fillBg').addEventListener('click',closeFillSheet);$('fillCancel').addEventListener('click',closeFillSheet);
-    [].forEach.call(e.querySelectorAll('.wkseg button'),function(b){b.addEventListener('click',function(){
+    [].forEach.call(e.querySelectorAll('.wkseg:not(.lv) button'),function(b){b.addEventListener('click',function(){
       keepWk=b.getAttribute('data-w')==='keep';
-      [].forEach.call(e.querySelectorAll('.wkseg button'),function(x){x.setAttribute('aria-pressed',x===b)});
+      [].forEach.call(e.querySelectorAll('.wkseg:not(.lv) button'),function(x){x.setAttribute('aria-pressed',x===b)});
       $('wkHint').textContent=keepWk?'주말 근무는 그대로 두고, 평일만 다시 채워요.':'주말 근무도 지우고 처음부터 다시 시작해요.';
+    })});
+    [].forEach.call(e.querySelectorAll('.wkseg.lv button'),function(b){b.addEventListener('click',function(){
+      keepLv=b.getAttribute('data-l')==='keep';
+      [].forEach.call(e.querySelectorAll('.wkseg.lv button'),function(x){x.setAttribute('aria-pressed',x===b)});
+      $('lvHint').textContent=keepLv?'휴가는 그대로 두고, 나머지만 다시 채워요.':'휴가도 지우고 처음부터 다시 시작해요.';
     })});
     [].forEach.call(e.querySelectorAll('.fopt'),function(b){b.addEventListener('click',function(){
       if(b.getAttribute('data-m')==='all'){   // 이 달 전부 지우기: 한 번 더 확인
@@ -1237,6 +1246,7 @@ h1{font-size:17px}
       if(reset){
         var keep={d:{},x:{}};
         if(keepWk)wk.forEach(function(id){keep.d[id]=c.d[id];if(c.x[id]!==undefined)keep.x[id]=c.x[id]});   // 주말 근무 유지 선택: 지우기 전에 따로 보관
+        if(keepLv)lv.forEach(function(id){keep.d[id]=c.d[id]});   // 휴가(연차) 유지 선택: 같이 보관
         freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf;   // 오늘 이전은 지금 값으로 굳힌 뒤 오늘부터 다시
         Object.keys(keep.d).forEach(function(id){c.d[id]=keep.d[id]});Object.keys(keep.x).forEach(function(id){c.x[id]=keep.x[id]});   // 유지할 주말 근무를 되돌려 놓음(고정 시간으로 취급)
       }
