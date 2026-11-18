@@ -139,6 +139,13 @@ body.lowminb{--bg:#ffefd9}
 .wkbar{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
 .wkbar small{color:var(--muted);font-size:12px;line-height:1.45}
 .wkseg{display:flex}
+.keepbar{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.keepbar>small{color:var(--muted);font-size:12px;line-height:1.45}
+.keeprow{display:flex;align-items:center;gap:10px;text-align:left;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+.keeprow .ck{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--on-accent);line-height:1}
+.keeprow[aria-pressed="true"]{border-color:var(--accent)}
+.keeprow[aria-pressed="true"] .ck{background:var(--accent);border-color:var(--accent)}
+.keeprow .kt{display:flex;flex-direction:column;min-width:0}.keeprow .kt b{font-size:14px}.keeprow .kt small{color:var(--muted);font-size:12px;line-height:1.4;word-break:keep-all}
 #fillSheet .panel{max-height:92vh;overflow-y:auto}
 .wkseg button{flex:1;font:inherit;font-size:14px;padding:9px 6px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 .wkseg button:first-child{border-radius:10px 0 0 10px}.wkseg button:last-child{border-radius:0 10px 10px 0;border-left:0}
@@ -302,7 +309,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.14</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.15</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -316,7 +323,7 @@ h1{font-size:17px}
     · 처음 여는 달은 달력이 흐려지고 <b>이 달 설정하기</b>가 떠요. 둘 중 하나를 골라요.<br>
     · <b>최소로 시작</b>: 평일 8시간. 다른 날을 바꿔도 나머지는 그대로예요.<br>
     · <b>최대로 채우기</b>: 월 최대 시간에 맞춰 자동으로 나눠요. 하루 길이는 근무시간 + 운동 1시간으로 보고, 긴 날을 월초에 모아요.<br>
-    · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말 근무나 휴가(연차)를 넣어 뒀다면 <b>주말 근무 유지 / 주말도 초기화</b>, <b>휴가 유지 / 휴가도 초기화</b>를 먼저 골라요. <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
+    · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말 근무·휴가(연차)·약속·일정(지정한 시간)을 넣어 뒀다면 <b>초기화해도 유지할 것</b>을 체크해서 골라요(기본은 모두 유지, 체크를 끄면 같이 지워져요). <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
     <b>실행</b> 오늘까지의 실제 기록<br>
     · 지난 날과 오늘은 눌러서 시·분을 고쳐요. 오늘은 시간을 쓰기 전에도 운동 칸을 누를 수 있어요.<br>
     · 요약에 예상 합계와 차이가 나와요. 올림/내림은 쓰지 않아요.<br><br>
@@ -1229,33 +1236,37 @@ h1{font-size:17px}
     return r.sort();
   }
   // 오늘 이후의 휴가(연차) 날짜들
+  // 월 초기화 팝업의 '유지할 것' 한 줄(체크됨 = 유지)
+  function keepRow(k,title,detail){return '<button type="button" class="keeprow" data-k="'+k+'" aria-pressed="true"><span class="ck">✓</span><span class="kt"><b>'+title+'</b><small>'+detail+'</small></span></button>'}
+  // 오늘 이후의 일정(시간을 지정한 날) 날짜들
+  function schedDays(c){var t=idOf(new Date());return Object.keys(c.sc||{}).filter(function(id){return id>=t&&c.sc[id]&&/^[0-9]+$/.test(c.d[id]||'')}).sort()}
+  // 오늘 이후의 약속(8시간 고정) 날짜들
+  function dineDays(c){var t=idOf(new Date());return Object.keys(c.x).filter(function(id){return id>=t&&c.x[id]==='dine'}).sort()}
   function leaveDays(c){var t=idOf(new Date());return Object.keys(c.d).filter(function(id){return id>=t&&c.d[id]==='leave'}).sort()}
   function c0d(id){var c=cur();return c.d[id]}
   function closeFillSheet(){var e=$('fillSheet');if(e)e.remove()}
   function openFillSheet(kind){
     closeFillSheet();
     var reset=kind==='reset',cap=capOf(monthDays().length),e=document.createElement('div');
-    var wk=reset?weekendWork(cur()):[],keepWk=true,lv=reset?leaveDays(cur()):[],keepLv=true;   // lv: 오늘 이후 휴가(연차) 날짜. keepLv: 초기화해도 유지할지   // wk: 오늘 이후 주말에 입력해 둔 근무(날짜). keepWk: 초기화해도 유지할지
+    var wk=reset?weekendWork(cur()):[],keepWk=true,lv=reset?leaveDays(cur()):[],keepLv=true,pm=reset?dineDays(cur()):[],keepPm=true,sc=reset?schedDays(cur()):[],keepSc=true;   // lv: 오늘 이후 휴가(연차) 날짜. pm: 오늘 이후 약속 날짜. keep*: 초기화해도 유지할지   // wk: 오늘 이후 주말에 입력해 둔 근무(날짜). keepWk: 초기화해도 유지할지
     e.className='sheet';e.id='fillSheet';
     e.innerHTML='<div class="backdrop" id="fillBg"></div><div class="panel" role="dialog" aria-modal="true"><h2>'+(vm+1)+(reset?'월 초기화':'월은 어떻게 시작할까요?')+'</h2>'+
       (reset?'<p class="note" style="text-align:center">오늘부터의 계획과 기록이 지워지고, 아래 방식으로 다시 시작해요. 오늘 이전 기록은 그대로예요. 하고 나서도 ‘↶ 되돌리기’로 한 단계 되돌릴 수 있어요.</p>':'')+
-      (wk.length?'<div class="wkbar"><b>주말 근무가 '+wk.length+'일 있어요</b><small>'+wk.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+') '+c0d(id)+'시간'}).join(', ')+'</small><div class="wkseg"><button type="button" data-w="keep" aria-pressed="true">주말 근무 유지</button><button type="button" data-w="reset" aria-pressed="false">주말도 초기화</button></div><small id="wkHint">주말 근무는 그대로 두고, 평일만 다시 채워요.</small></div>':'')+
-      (lv.length?'<div class="wkbar"><b>휴가(연차)가 '+lv.length+'일 있어요</b><small>'+lv.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+')'}).join(', ')+'</small><div class="wkseg lv"><button type="button" data-l="keep" aria-pressed="true">휴가 유지</button><button type="button" data-l="reset" aria-pressed="false">휴가도 초기화</button></div><small id="lvHint">휴가는 그대로 두고, 나머지만 다시 채워요.</small></div>':'')+
+      (wk.length||lv.length||pm.length||sc.length?'<div class="keepbar"><b>초기화해도 유지할 것을 골라요</b><small>체크한 것은 그대로 남고, 체크를 끄면 같이 지워져요.</small>'+
+        (wk.length?keepRow('wk','주말 근무 '+wk.length+'일',wk.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+') '+c0d(id)+'시간'}).join(', ')):'')+
+        (lv.length?keepRow('lv','휴가(연차) '+lv.length+'일',lv.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+')'}).join(', ')):'')+
+        (pm.length?keepRow('pm','약속 '+pm.length+'일 (8시간 고정)',pm.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+')'}).join(', ')):'')+
+        (sc.length?keepRow('sc','일정 '+sc.length+'일 (지정한 시간)',sc.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+') '+c0d(id)+'시간'}).join(', ')):'')+'</div>':'')+
       '<button type="button" class="fopt" data-m="min"><b>최소로 시작</b><small>평일 8시간으로 채워요(주 40시간 기준). 다른 날을 고쳐도 나머지 숫자는 자동으로 안 바뀌어요.</small></button>'+
       '<button type="button" class="fopt" data-m="max"><b>최대로 채우기</b><small>월 최대 '+cap+'시간에 맞춰 자동으로 나눠요. 한 날을 고치면 뒤쪽 날짜가 다시 맞춰져요.</small></button>'+
       (reset?'<button type="button" class="fopt fall" data-m="all"><b>이 달 전부 지우기</b><small>지난 날 기록까지 이 달의 모든 입력을 지우고, 설정 전 상태로 돌아가요. ↶ 되돌리기로 한 단계 되돌릴 수 있어요.</small></button>':'')+
       '<button type="button" class="ghost" id="fillCancel">'+(reset?'취소':'나중에')+'</button></div>';
     document.body.appendChild(e);
     $('fillBg').addEventListener('click',closeFillSheet);$('fillCancel').addEventListener('click',closeFillSheet);
-    [].forEach.call(e.querySelectorAll('.wkseg:not(.lv) button'),function(b){b.addEventListener('click',function(){
-      keepWk=b.getAttribute('data-w')==='keep';
-      [].forEach.call(e.querySelectorAll('.wkseg:not(.lv) button'),function(x){x.setAttribute('aria-pressed',x===b)});
-      $('wkHint').textContent=keepWk?'주말 근무는 그대로 두고, 평일만 다시 채워요.':'주말 근무도 지우고 처음부터 다시 시작해요.';
-    })});
-    [].forEach.call(e.querySelectorAll('.wkseg.lv button'),function(b){b.addEventListener('click',function(){
-      keepLv=b.getAttribute('data-l')==='keep';
-      [].forEach.call(e.querySelectorAll('.wkseg.lv button'),function(x){x.setAttribute('aria-pressed',x===b)});
-      $('lvHint').textContent=keepLv?'휴가는 그대로 두고, 나머지만 다시 채워요.':'휴가도 지우고 처음부터 다시 시작해요.';
+    [].forEach.call(e.querySelectorAll('.keeprow'),function(b){b.addEventListener('click',function(){   // 유지할 것 체크 토글
+      var on=b.getAttribute('aria-pressed')!=='true',k=b.getAttribute('data-k');
+      b.setAttribute('aria-pressed',on);b.querySelector('.ck').textContent=on?'✓':'';
+      if(k==='wk')keepWk=on;else if(k==='lv')keepLv=on;else if(k==='pm')keepPm=on;else if(k==='sc')keepSc=on;
     })});
     [].forEach.call(e.querySelectorAll('.fopt'),function(b){b.addEventListener('click',function(){
       if(b.getAttribute('data-m')==='all'){   // 이 달 전부 지우기: 한 번 더 확인
@@ -1268,11 +1279,13 @@ h1{font-size:17px}
       }
       var c=cur();
       if(reset){
-        var keep={d:{},x:{}};
+        var keep={d:{},x:{},sc:{}};
         if(keepWk)wk.forEach(function(id){keep.d[id]=c.d[id];if(c.x[id]!==undefined)keep.x[id]=c.x[id]});   // 주말 근무 유지 선택: 지우기 전에 따로 보관
         if(keepLv)lv.forEach(function(id){keep.d[id]=c.d[id]});   // 휴가(연차) 유지 선택: 같이 보관
+        if(keepSc)sc.forEach(function(id){keep.d[id]=c.d[id];keep.sc[id]=true});   // 일정(지정한 시간) 유지 선택: 시간과 일정 표시를 같이 보관
+        if(keepPm)pm.forEach(function(id){keep.d[id]=c.d[id];keep.x[id]='dine'});   // 약속 유지 선택: 8시간 고정 + 약속 표시를 같이 보관
         freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf;   // 오늘 이전은 지금 값으로 굳힌 뒤 오늘부터 다시
-        Object.keys(keep.d).forEach(function(id){c.d[id]=keep.d[id]});Object.keys(keep.x).forEach(function(id){c.x[id]=keep.x[id]});   // 유지할 주말 근무를 되돌려 놓음(고정 시간으로 취급)
+        Object.keys(keep.d).forEach(function(id){c.d[id]=keep.d[id]});Object.keys(keep.x).forEach(function(id){c.x[id]=keep.x[id]});Object.keys(keep.sc).forEach(function(id){c.sc[id]=true});   // 유지할 주말 근무를 되돌려 놓음(고정 시간으로 취급)
       }
       c.fm=b.getAttribute('data-m');if(c.fm==='max')c.pd=1;else delete c.pd;   // pd: 새 기본 선호 근무시간을 쓰는 달
       save();closeFillSheet();render();
