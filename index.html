@@ -290,7 +290,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.5.1</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.0</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
@@ -390,6 +390,28 @@ h1{font-size:17px}
   var APPSET=(function(){try{var o=JSON.parse(localStorage.getItem('app-settings-v1'));return o&&typeof o==='object'?o:{}}catch(e){return {}}})();   // 앱 설정: ex(운동) / dine(회식·약속), false면 끔. 토요일 운동은 운동에 포함(운동이 켜져 있으면 휴일 아닌 토요일에도 열림). 웹에는 없음 → 모두 켜짐
   function exOn(){return APPSET.ex!==false}
   var FILLUI=window.__fillUI===true;   // 앱에서만 켜짐: 안 열어본 달 설정 팝업 + 월별 자동 채우기 모드(min/max). 웹에는 없음 → 예전 방식(max)
+  // 선호 근무시간(앱 설정 pref:{ex:[운동 있는 날 1,2순위], no:[운동 없는 날 1,2,3순위]}): 최대 모드에서 월 최대에 딱 맞는 조합 중 높은 순위를 가장 많이 씀
+  function prefOf(){
+    if(!FILLUI||!APPSET.pref)return null;
+    var pe=(APPSET.pref.ex||[]).map(Number).filter(function(v){return v>=5&&v<=EX_MAX}),pn=(APPSET.pref.no||[]).map(Number).filter(function(v){return v>=5&&v<=13});
+    return pe.length&&pn.length?{ex:pe,no:pn}:null;
+  }
+  function prefPlan(N,ex,R){
+    var P=prefOf();if(!P)return null;
+    var exI=[],noI=[],k;for(k=0;k<N;k++)(ex[k]?exI:noI).push(k);
+    var e=exI.length,m=noI.length,e1=P.ex[0],e2=P.ex[1],n1=P.no[0],n2=P.no[1],n3=P.no[2],best=null,k2,j2,j3,sum,cost;
+    for(k2=0;k2<=(e2!=null?e:0);k2++)for(j2=0;j2<=(n2!=null?m:0);j2++)for(j3=0;j3<=(n3!=null?m-j2:0);j3++){
+      sum=e1*(e-k2)+(e2||0)*k2+n1*(m-j2-j3)+(n2||0)*j2+(n3||0)*j3;
+      if(sum!==R)continue;
+      cost=k2+j2+2*j3;   // 낮은 순위를 적게 쓰는 조합이 우선
+      if(!best||cost<best.cost)best={k2:k2,j2:j2,j3:j3,cost:cost};
+    }
+    if(!best)return null;
+    var val=[];
+    exI.forEach(function(i,q){val[i]=(q>=e-best.k2)?e2:e1});
+    noI.forEach(function(i,q){val[i]=(q>=m-best.j3)?n3:(q>=m-best.j3-best.j2)?n2:n1});   // 낮은 순위 값은 말일 쪽에 둠
+    return val;
+  }
   function curFm(){return FILLUI?((all[key()]||{}).fm||'max'):'max'}   // 월 모드: 'min'(평일 8시간, 자동으로 안 바뀜) / 'max'(월 최대에 맞춰 자동 배분)
   function dineOn(){return APPSET.dine!==false}
   function exOk(d){if(!exOn())return false;return !d.we||(d.dow===6&&!HOL[d.id])}
@@ -445,7 +467,9 @@ h1{font-size:17px}
     function maxOf(kk){return ex[kk]?EX_MAX:13}
     var val=[],sum=0,lo=0,hi=0,fm=curFm();
     for(k=0;k<N;k++){val[k]=ex[k]?10:11;sum+=val[k];lo+=floorOf(k);hi+=maxOf(k)}
+    var PP=null;
     if(fm==='min'){for(k=0;k<N;k++)val[k]=8}   // 최소 모드: 수정 안 한 평일은 8시간(주 40시간 기준), 다른 날을 고쳐도 안 바뀜
+    else if(PP=prefPlan(N,ex,R)){for(k=0;k<N;k++)val[k]=PP[k]}   // 선호 근무시간 조합
     else if(R<=lo){for(k=0;k<N;k++)val[k]=floorOf(k)}
     else if(R>=hi){for(k=0;k<N;k++)val[k]=maxOf(k)}
     else if(sum>R){
@@ -699,7 +723,7 @@ h1{font-size:17px}
           inner=dn+splitHtml(x.h*60);
           if(slotOk(d)&&!x.edu){
             var todayRun=runMode&&d.id===todayId;   // 실행 모드의 오늘: 시간 기록 전에도 운동 여부를 입력할 수 있음
-            exbtn=exBtn(todayRun&&c.ax[d.id]!==undefined?exState(c.ax[d.id],false):exState(c.x[d.id],x.ex),d.id,runMode&&!todayRun,false);
+            exbtn=exBtn(todayRun&&c.ax[d.id]!==undefined?exState(c.ax[d.id],false):exState(c.x[d.id],x.ex),d.id,runMode&&!todayRun,!runMode&&d.id<todayId);   // 계획 모드의 지난 날짜: 운동함이면 기록 시간이 없어도 반짝임
           }
         }else if(!d.we&&r.error&&!HOL[d.id]&&m!=='off'&&m!=='leave'){cls+=' rest';inner=dn+'?'}
         else{cls+=' rest';if(kind)mcls+=' '+kind+'bg';inner=dn+restText}

@@ -23,6 +23,20 @@ tr.u:hover{background:var(--bg)}
 pre{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--bg);padding:8px;border-radius:8px;max-height:50vh;overflow:auto}
 .msg{margin:8px 0;font-size:14px}.bad{color:#c62828}.ok{color:#2e7d32}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.hint{color:var(--muted);font-size:13px;line-height:1.5;margin-top:2px}
+.yr{display:flex;align-items:center;justify-content:center;gap:16px;margin:10px 0 8px}
+.yr b{font-size:18px;min-width:84px;text-align:center}
+.yr button{width:44px;padding:6px 0}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mc{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:5px 10px 5px;background:var(--bg)}
+.mc label{grid-column:1/-1;font-size:12px;color:var(--muted);line-height:1.3}
+.mc input{width:100%;min-width:0;box-sizing:border-box;border:0;background:transparent;font-size:20px;font-weight:700;padding:0;color:var(--fg);outline:none}
+.mc input::placeholder{color:var(--muted);font-weight:400;font-size:14px}
+.mc input::-webkit-outer-spin-button,.mc input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.mc .u{margin-left:4px;font-size:12px;color:var(--muted)}
+.mc.set{border-color:var(--accent);background:rgba(31,94,255,.08)}
+.mc.chg{border-color:#f59e0b;background:rgba(245,158,11,.16)}
+button:disabled{opacity:.45;cursor:default}
 </style>
 </head>
 <body>
@@ -41,10 +55,11 @@ pre{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--bg
   </div>
   <div class="card">
     <b>월별 최소 근무시간</b>
-    <div style="color:var(--muted);font-size:13px">모든 사용자 앱에 적용돼요. 비워 두면 앱이 (공휴일 아닌 평일 수 × 8시간)으로 계산해요.</div>
-    <div class="row"><input id="mm" type="month" style="min-width:150px"><input id="mh" type="number" inputmode="numeric" min="1" max="400" placeholder="시간 (예: 168)" style="width:130px"><button id="mset">저장</button><button class="del" id="mclr">이 달 지우기</button></div>
+    <div class="hint">월 칸에 시간을 바로 입력하고 <b>저장</b>을 누르세요. 비워 두면 앱이 (공휴일 아닌 평일 수 × 8시간)으로 계산해요. 모든 사용자 앱에 적용돼요.</div>
+    <div class="yr"><button id="yprev" aria-label="이전 해">‹</button><b id="myear"></b><button id="ynext" aria-label="다음 해">›</button></div>
+    <div class="mgrid" id="mgrid"></div>
+    <div class="row"><button class="pri" id="msave">저장</button><button id="mcancel">입력 취소</button></div>
     <div class="msg" id="mmsg"></div>
-    <table><thead><tr><th>월</th><th>최소 근무시간</th></tr></thead><tbody id="mlist"></tbody></table>
   </div>
   <div class="card">
     <div class="row"><b>사용자</b><button id="refresh">새로고침</button></div>
@@ -68,22 +83,45 @@ function et(r){return ERR[r.error]||('오류: '+(r.error||r.message))}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fmt(t){if(!t)return '-';var d=new Date(t);return (d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
 function msg(id,t,bad){$(id).className='msg '+(bad?'bad':'ok');$(id).textContent=t}
-$('go').onclick=function(){pw=$('pw').value;rpc('app_admin_list',{p_pw:pw}).then(function(r){if(!r.ok){msg('lmsg',et(r),true);return}$('login').hidden=true;$('app').hidden=false;draw(r.users);var n=new Date();$('mm').value=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);loadMins()})};
+$('go').onclick=function(){pw=$('pw').value;rpc('app_admin_list',{p_pw:pw}).then(function(r){if(!r.ok){msg('lmsg',et(r),true);return}$('login').hidden=true;$('app').hidden=false;draw(r.users);loadMins()})};
 $('pw').onkeydown=function(e){if(e.key==='Enter')$('go').onclick()};
 function refresh(){rpc('app_admin_list',{p_pw:pw}).then(function(r){if(!r.ok){msg('amsg',et(r),true);return}draw(r.users)})}
 $('refresh').onclick=function(){refresh();loadMins()};
+var minsData={},pend={},myear=new Date().getFullYear();
+function pad2(n){return n<10?'0'+n:''+n}
+function mcCls(k){return 'mc'+(pend.hasOwnProperty(k)?' chg':(minsData[k]?' set':''))}
+function updSave(){var n=Object.keys(pend).length;$('msave').textContent=n?'저장 ('+n+'개 변경)':'저장';$('msave').disabled=!n;$('mcancel').disabled=!n}
+function drawMins(){
+  $('myear').textContent=myear+'년';var h='';
+  for(var m=1;m<=12;m++){var k=myear+'-'+pad2(m),v=pend.hasOwnProperty(k)?pend[k]:(minsData[k]||'');
+    h+='<div class="'+mcCls(k)+'"><label>'+m+'월</label><input type="number" inputmode="numeric" min="1" max="400" placeholder="자동" value="'+v+'" data-k="'+k+'"><span class="u">시간</span></div>'}
+  $('mgrid').innerHTML=h;
+  Array.prototype.forEach.call($('mgrid').querySelectorAll('input'),function(i){i.oninput=function(){
+    var k=i.dataset.k;pend[k]=i.value.trim();if(String(pend[k])===String(minsData[k]||''))delete pend[k];
+    i.parentNode.className=mcCls(k);updSave()}});
+  updSave();
+}
 function loadMins(){rpc('app_get_mins',{}).then(function(r){
-  if(!r||r.code||r.message){$('mlist').innerHTML='<tr><td colspan="2">불러오지 못했어요. 서버 설정(patch_min.sql)을 먼저 실행해 주세요.</td></tr>';return}
-  var ks=Object.keys(r).sort();
-  $('mlist').innerHTML=ks.length?ks.map(function(k){return '<tr class="mrow" data-m="'+k+'" data-h="'+r[k]+'" style="cursor:pointer"><td>'+k+'</td><td>'+r[k]+'시간</td></tr>'}).join(''):'<tr><td colspan="2">아직 입력한 달이 없어요.</td></tr>';
-  Array.prototype.forEach.call(document.querySelectorAll('tr.mrow'),function(tr){tr.onclick=function(){$('mm').value=tr.dataset.m;$('mh').value=tr.dataset.h}});
+  if(!r||r.code||r.message){msg('mmsg','불러오지 못했어요. 서버 설정(patch_min.sql)을 먼저 실행해 주세요.',true);return}
+  minsData=r;drawMins();
 })}
-function setMin(h){var m=$('mm').value;if(!m){msg('mmsg','월을 먼저 골라 주세요.',true);return}
-  rpc('app_admin_set_min',{p_pw:pw,p_month:m,p_hours:h}).then(function(r){
-    if(r.ok){msg('mmsg',(r.cleared?m+' 설정을 지웠어요.':m+' 최소 근무시간을 '+h+'시간으로 저장했어요.'));if(r.cleared)$('mh').value='';loadMins();return}
-    msg('mmsg',(r.code||r.message)?'서버 설정(patch_min.sql)을 먼저 실행해 주세요.':et(r),true)})}
-$('mset').onclick=function(){var h=parseInt($('mh').value,10);if(!(h>0)){msg('mmsg','시간을 입력해 주세요.',true);return}setMin(h)};
-$('mclr').onclick=function(){setMin(0)};
+$('yprev').onclick=function(){myear--;drawMins()};
+$('ynext').onclick=function(){myear++;drawMins()};
+$('mcancel').onclick=function(){pend={};drawMins();msg('mmsg','입력을 취소했어요.')};
+$('msave').onclick=function(){
+  var ks=Object.keys(pend).sort();if(!ks.length)return;
+  for(var q=0;q<ks.length;q++){var t=pend[ks[q]];if(t!==''&&!(parseInt(t,10)>=1&&parseInt(t,10)<=400)){msg('mmsg',ks[q]+' 시간은 1~400 사이 숫자로 입력해 주세요.',true);return}}
+  $('msave').disabled=true;var ok=0,fail=null;
+  function done(){drawMins();
+    if(fail)msg('mmsg',(fail.code||fail.message)?'서버 설정(patch_min.sql)을 먼저 실행해 주세요.':et(fail)+(ok?' (먼저 '+ok+'개는 저장됨)':''),true);
+    else msg('mmsg',ok+'개 월을 저장했어요.')}
+  (function next(i){
+    if(i>=ks.length){done();return}
+    var k=ks[i],v=pend[k]===''?0:parseInt(pend[k],10);
+    rpc('app_admin_set_min',{p_pw:pw,p_month:k,p_hours:v}).then(function(r){
+      if(r.ok){ok++;if(v>0)minsData[k]=v;else delete minsData[k];delete pend[k];next(i+1)}else{fail=r;done()}})
+  })(0);
+};
 function draw(us){
   $('list').innerHTML=us.length?us.map(function(u){return '<tr class="u" data-id="'+u.id+'" data-n="'+esc(u.name)+'"><td>'+esc(u.name)+'</td><td>'+fmt(u.created_at)+'</td><td>'+u.version+'</td><td>'+fmt(u.updated_at)+'</td></tr>'}).join(''):'<tr><td colspan="4">아직 사용자가 없어요.</td></tr>';
   Array.prototype.forEach.call(document.querySelectorAll('tr.u'),function(tr){tr.onclick=function(){open_(tr.dataset.id,tr.dataset.n)}});

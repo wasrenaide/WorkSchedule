@@ -33,7 +33,12 @@
     '#setBox .upd button{width:100%;font:inherit;font-size:15px;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}' +
     '#setBox .upd button.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}' +
     '#setBox .upd button:disabled{opacity:.5}' +
-    '#cloudRow{gap:8px}';
+    '#setBox .pref{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}' +
+    '#setBox .pref b{font-size:16px}#setBox .pref small{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin:2px 0 8px}' +
+    '#setBox .pref .pr{display:flex;align-items:center;gap:6px;margin:6px 0}#setBox .pref .pr span{flex:none;width:92px;font-size:13px}' +
+    '#setBox .pref select{flex:1;min-width:0;font:inherit;font-size:15px;padding:8px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}' +
+    '#updPill{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:700}' +
+    '#cloudRow{gap:8px;flex-wrap:wrap;row-gap:6px}';
   document.head.appendChild(css);
 
   var row = document.getElementById('cloudRow');
@@ -75,15 +80,30 @@
     });
   }
   function doUpdate() {
-    var b = document.getElementById('updBtn'); b.disabled = true; say('갱신하는 중… 잠시 뒤 앱이 다시 열려요.');
+    var b = document.getElementById('updBtn'); if (b) b.disabled = true; say('갱신하는 중… 잠시 뒤 앱이 다시 열려요.');
     var files = ['./', 'cloud.js', 'settings.js', 'sw.js'];
     Promise.all(files.map(function (f) { return fetch(f + (f === './' ? '?c=' : '?c=') + Date.now(), { cache: 'reload' }).catch(function () {}); }))   // 브라우저 임시 저장분(10분)을 건너뛰고 새로 받음
       .then(function () { return navigator.serviceWorker ? navigator.serviceWorker.getRegistrations() : []; })
       .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
       .then(function () { return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : null; })
       .then(function () { location.replace(location.pathname + '?v=' + Date.now()); })   // 근무 기록(localStorage)은 건드리지 않음
-      .catch(function () { b.disabled = false; say('갱신하지 못했어요. 앱을 완전히 종료했다가 다시 열어 주세요.', 'bad'); });
+      .catch(function () { if (b) b.disabled = false; say('갱신하지 못했어요. 앱을 완전히 종료했다가 다시 열어 주세요.', 'bad'); });
   }
+
+  // 새 버전이 있으면 달력 아래 줄에 알림 버튼을 띄움 (30분에 한 번만 확인, 실패하면 조용히 무시)
+  function autoCheck() {
+    try { var last = +localStorage.getItem('upd-check-v1') || 0; if (Date.now() - last < 30 * 60 * 1000) return; localStorage.setItem('upd-check-v1', String(Date.now())); } catch (e) {}
+    fetch('./?c=' + Date.now(), { cache: 'reload' }).then(function (r) { return r.text(); }).then(function (t) {
+      var m = t.match(/id="appVer"[^>]*>[^<]*?(\d+\.\d+\.\d+)/);
+      if (!m || !newer(m[1], curVer()) || document.getElementById('updPill')) return;
+      var row = document.getElementById('cloudRow'), b = document.createElement('button');
+      b.id = 'updPill'; b.type = 'button'; b.textContent = '⬆ 새 버전 ' + m[1] + ' 갱신';
+      b.addEventListener('click', function () { b.disabled = true; b.textContent = '갱신하는 중…'; doUpdate(); });
+      if (row) row.appendChild(b);
+    }).catch(function () {});
+  }
+  setTimeout(autoCheck, 3000);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') autoCheck(); });
 
   var back = null;
   function close() { if (back) { back.remove(); back = null; } }
@@ -97,6 +117,12 @@
       h += '<div class="it' + (dis ? ' dis' : '') + '"><div class="t"><b>' + it.name + '</b><small>' + it.desc + '</small></div>' +
         '<button type="button" class="sw' + (on(o, it.k) ? ' on' : '') + '" data-k="' + it.k + '" ' + (dis ? 'disabled' : '') + ' aria-label="' + it.name + '"></button></div>';
     });
+    var pf = o.pref || {}, pe = (pf.ex || [10, 12]), pn = (pf.no || [11, 13]);
+    function opts(sel, lo, hi, none) { var s = none ? '<option value="">없음</option>' : ''; for (var v = lo; v <= hi; v++) s += '<option value="' + v + '"' + (+sel === v ? ' selected' : '') + '>' + v + '시간</option>'; return s; }
+    h += '<div class="pref"><b>선호 근무시간</b><small>"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 <b>1순위를 가장 많이</b> 써요(낮은 순위는 말일 쪽). 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 평일 8시간이라 쓰이지 않아요. 이미 정해진 날은 바뀌지 않아요.</small>' +
+      '<div class="pr"><span>운동 있는 날</span><select data-p="ex0">' + opts(pe[0], 5, 12, false) + '</select><select data-p="ex1">' + opts(pe[1], 5, 12, true) + '</select></div>' +
+      '<div class="pr"><span>운동 없는 날</span><select data-p="no0">' + opts(pn[0], 5, 13, false) + '</select><select data-p="no1">' + opts(pn[1], 5, 13, true) + '</select><select data-p="no2">' + opts(pn[2], 5, 13, true) + '</select></div>' +
+      '<small>왼쪽부터 1순위, 2순위, 3순위예요. 처음 값은 기존 방식(운동 10·12시간, 운동 없음 11·13시간)이에요.</small></div>';
     h += '<p>바꾸면 화면이 다시 불러와져요. 이미 입력한 근무시간은 지워지지 않아요. 설정은 서버에 저장할 때 같이 저장돼요.</p>' +
       '<div class="upd"><b>앱 업데이트</b><span class="m" id="updMsg">지금 쓰는 버전 ' + curVer() + '</span>' +
       '<button type="button" id="updBtn">최신 버전 확인하기</button></div>' +
@@ -107,6 +133,13 @@
     document.body.appendChild(back);
     document.getElementById('setClose').addEventListener('click', close);
     document.getElementById('updBtn').addEventListener('click', checkUpdate);
+    Array.prototype.forEach.call(back.querySelectorAll('.pref select'), function (sl) {
+      sl.addEventListener('change', function () {
+        var g = function (k) { var e = back.querySelector('select[data-p="' + k + '"]'); return e && e.value ? +e.value : null; };
+        var cur = read(), ex = [g('ex0'), g('ex1')].filter(Boolean), no = [g('no0'), g('no1'), g('no2')].filter(Boolean);
+        cur.pref = { ex: ex, no: no }; write(cur); location.reload();
+      });
+    });
     document.getElementById('admBtn').addEventListener('click', function () { location.href = 'admin.html'; });   // 같은 창에서 열고, 관리자 페이지의 '← 앱으로'로 돌아옴
     Array.prototype.forEach.call(back.querySelectorAll('.sw'), function (b) {
       b.addEventListener('click', function () {
