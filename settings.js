@@ -87,6 +87,7 @@
   }
   function doUpdate() {
     var b = document.getElementById('updBtn'); if (b) b.disabled = true; say('갱신하는 중… 잠시 뒤 앱이 다시 열려요.');
+    if (b) { try { sessionStorage.setItem('reopen-set-v1', '1'); } catch (e) {} }   // 설정에서 눌렀으면 새로 불러온 뒤 설정 창을 다시 엶
     var files = ['./', 'cloud.js', 'settings.js', 'sw.js'];
     Promise.all(files.map(function (f) { return fetch(f + (f === './' ? '?c=' : '?c=') + Date.now(), { cache: 'reload' }).catch(function () {}); }))   // 브라우저 임시 저장분(10분)을 건너뛰고 새로 받음
       .then(function () { return navigator.serviceWorker ? navigator.serviceWorker.getRegistrations() : []; })
@@ -111,6 +112,17 @@
   setTimeout(autoCheck, 3000);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') autoCheck(); });
 
+  // 설정에서 '갱신/다시 불러오기'를 눌러 화면이 새로 불러와졌으면 설정 창을 닫힌 채로 두지 않고 다시 연다
+  (function () {
+    var f = null; try { f = sessionStorage.getItem('reopen-set-v1'); sessionStorage.removeItem('reopen-set-v1'); } catch (e) {}
+    if (!f) return;
+    setTimeout(function () {
+      open();
+      say('다시 불러왔어요 ✓ 지금 쓰는 버전 ' + curVer(), 'ok');
+      var m = document.getElementById('updMsg'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'center' });
+    }, 400);
+  })();
+
   var back = null;
   function close() { if (back) { back.remove(); back = null; } }
   function open() {
@@ -125,7 +137,7 @@
     });
     var pf = o.pref || {}, pe = (pf.ex || [9, 10, 7]), pn = (pf.no || [10, 11, 8]);
     function opts(sel, lo, hi, none) { var s = none ? '<option value="">없음</option>' : ''; for (var v = lo; v <= hi; v++) s += '<option value="' + v + '"' + (+sel === v ? ' selected' : '') + '>' + v + '시간</option>'; return s; }
-    h += '<div class="pref"><b>선호 근무시간</b><small>"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 <b>1순위를 가장 많이</b> 써요(낮은 순위는 말일 쪽). 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 평일 8시간이라 쓰이지 않아요. 이미 정해진 날은 바뀌지 않아요.</small>' +
+    h += '<div class="pref"><b>선호 근무시간</b><small>"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 <b>1순위를 가장 많이</b> 써요. 시간이 많은 날은 월초로 모으고 적은 날은 말일 쪽에 둬요(예: 앞쪽 11시간, 뒤쪽 10시간). 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 평일 8시간이라 쓰이지 않아요. 이미 정해진 날은 바뀌지 않아요.</small>' +
       '<div class="pr hd"><span></span><em class="r1">1순위<i>가장 선호</i></em><em class="r2">2순위</em><em class="r3">3순위<i>가장 낮음</i></em></div>' +
       '<div class="pr"><span>운동 있는 날</span><select class="r1" data-p="ex0">' + opts(pe[0], 5, 12, false) + '</select><select class="r2" data-p="ex1">' + opts(pe[1], 5, 12, true) + '</select><select class="r3" data-p="ex2">' + opts(pe[2], 5, 12, true) + '</select></div>' +
       '<div class="pr"><span>운동 없는 날</span><select class="r1" data-p="no0">' + opts(pn[0], 5, 13, false) + '</select><select class="r2" data-p="no1">' + opts(pn[1], 5, 13, true) + '</select><select class="r3" data-p="no2">' + opts(pn[2], 5, 13, true) + '</select></div>' +

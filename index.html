@@ -290,7 +290,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.2</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.3</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
@@ -407,12 +407,16 @@ h1{font-size:17px}
       sum=e1*(e-k2-k3)+(e2||0)*k2+(e3||0)*k3+n1*(m-j2-j3)+(n2||0)*j2+(n3||0)*j3;
       if(sum!==R)continue;
       cost=k2+2*k3+j2+2*j3;   // 낮은 순위를 적게 쓰는 조합이 우선(3순위는 2순위의 두 배로 친다)
-      if(!best||cost<best.cost)best={k2:k2,k3:k3,j2:j2,j3:j3,cost:cost};
+      // 비용이 같으면: 운동 있는 날(월초)을 먼저 높은 순위로 올리고(운동 1시간 포함 하루 길이가 긴 날이 앞으로), 낮은 순위는 운동 없는 날(말일 쪽)에 둠
+      if(!best||cost<best.cost||(cost===best.cost&&(k2>best.k2||(k2===best.k2&&k3<best.k3))))best={k2:k2,k3:k3,j2:j2,j3:j3,cost:cost};
     }
     if(!best)return null;
-    var val=[];
-    exI.forEach(function(i,q){val[i]=(q>=e-best.k3)?e3:(q>=e-best.k3-best.k2)?e2:e1});   // 낮은 순위 값은 말일 쪽에 둠
-    noI.forEach(function(i,q){val[i]=(q>=m-best.j3)?n3:(q>=m-best.j3-best.j2)?n2:n1});
+    // 같은 종류(운동 있는 날끼리, 없는 날끼리)에서는 시간이 많은 날을 월초로 모으고 적은 날을 말일 쪽에 둠 (예: 앞쪽 11시간, 뒤쪽 10시간)
+    function spread(idx,vals){vals.sort(function(a,b){return b-a});idx.forEach(function(i,q){val[i]=vals[q]})}
+    var val=[],ev=[],nv=[],q;
+    for(q=0;q<e-best.k2-best.k3;q++)ev.push(e1);for(q=0;q<best.k2;q++)ev.push(e2);for(q=0;q<best.k3;q++)ev.push(e3);
+    for(q=0;q<m-best.j2-best.j3;q++)nv.push(n1);for(q=0;q<best.j2;q++)nv.push(n2);for(q=0;q<best.j3;q++)nv.push(n3);
+    spread(exI,ev);spread(noI,nv);
     return val;
   }
   function curFm(){return FILLUI?((all[key()]||{}).fm||'max'):'max'}   // 월 모드: 'min'(평일 8시간, 자동으로 안 바뀜) / 'max'(월 최대에 맞춰 자동 배분)
