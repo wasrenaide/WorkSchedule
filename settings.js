@@ -36,6 +36,12 @@
     '#setBox .pref{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}' +
     '#setBox .pref b{font-size:16px}#setBox .pref small{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin:2px 0 8px}' +
     '#setBox .pref .pr{display:flex;align-items:center;gap:6px;margin:6px 0}#setBox .pref .pr span{flex:none;width:92px;font-size:13px}' +
+    '#setBox .pref .hd{margin:8px 0 2px}#setBox .pref .hd em{flex:1;min-width:0;font-style:normal;font-size:12px;font-weight:700;text-align:center;line-height:1.2;border-radius:6px;padding:3px 0}' +
+    '#setBox .pref .hd em i{display:block;font-style:normal;font-weight:400;font-size:10px;color:var(--muted)}' +
+    '#setBox .pref .hd .r1{background:var(--accent);color:var(--on-accent)}#setBox .pref .hd .r1 i{color:var(--on-accent);opacity:.85}' +
+    '#setBox .pref .hd .r2{background:rgba(31,94,255,.18);color:var(--fg)}' +
+    '#setBox .pref .hd .r3{background:rgba(120,130,145,.18);color:var(--muted)}' +
+    '#setBox .pref select.r1{border:2px solid var(--accent);font-weight:700}#setBox .pref select.r2{border-color:rgba(31,94,255,.45)}#setBox .pref select.r3{opacity:.85}' +
     '#setBox .pref select{flex:1;min-width:0;font:inherit;font-size:15px;padding:8px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}' +
     '#updPill{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:700}' +
     '#cloudRow{gap:8px;flex-wrap:wrap;row-gap:6px}';
@@ -117,12 +123,13 @@
       h += '<div class="it' + (dis ? ' dis' : '') + '"><div class="t"><b>' + it.name + '</b><small>' + it.desc + '</small></div>' +
         '<button type="button" class="sw' + (on(o, it.k) ? ' on' : '') + '" data-k="' + it.k + '" ' + (dis ? 'disabled' : '') + ' aria-label="' + it.name + '"></button></div>';
     });
-    var pf = o.pref || {}, pe = (pf.ex || [10, 12]), pn = (pf.no || [11, 13]);
+    var pf = o.pref || {}, pe = (pf.ex || [9, 10, 7]), pn = (pf.no || [10, 11, 8]);
     function opts(sel, lo, hi, none) { var s = none ? '<option value="">없음</option>' : ''; for (var v = lo; v <= hi; v++) s += '<option value="' + v + '"' + (+sel === v ? ' selected' : '') + '>' + v + '시간</option>'; return s; }
     h += '<div class="pref"><b>선호 근무시간</b><small>"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 <b>1순위를 가장 많이</b> 써요(낮은 순위는 말일 쪽). 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 평일 8시간이라 쓰이지 않아요. 이미 정해진 날은 바뀌지 않아요.</small>' +
-      '<div class="pr"><span>운동 있는 날</span><select data-p="ex0">' + opts(pe[0], 5, 12, false) + '</select><select data-p="ex1">' + opts(pe[1], 5, 12, true) + '</select></div>' +
-      '<div class="pr"><span>운동 없는 날</span><select data-p="no0">' + opts(pn[0], 5, 13, false) + '</select><select data-p="no1">' + opts(pn[1], 5, 13, true) + '</select><select data-p="no2">' + opts(pn[2], 5, 13, true) + '</select></div>' +
-      '<small>왼쪽부터 1순위, 2순위, 3순위예요. 처음 값은 기존 방식(운동 10·12시간, 운동 없음 11·13시간)이에요.</small></div>';
+      '<div class="pr hd"><span></span><em class="r1">1순위<i>가장 선호</i></em><em class="r2">2순위</em><em class="r3">3순위<i>가장 낮음</i></em></div>' +
+      '<div class="pr"><span>운동 있는 날</span><select class="r1" data-p="ex0">' + opts(pe[0], 5, 12, false) + '</select><select class="r2" data-p="ex1">' + opts(pe[1], 5, 12, true) + '</select><select class="r3" data-p="ex2">' + opts(pe[2], 5, 12, true) + '</select></div>' +
+      '<div class="pr"><span>운동 없는 날</span><select class="r1" data-p="no0">' + opts(pn[0], 5, 13, false) + '</select><select class="r2" data-p="no1">' + opts(pn[1], 5, 13, true) + '</select><select class="r3" data-p="no2">' + opts(pn[2], 5, 13, true) + '</select></div>' +
+      '<small>왼쪽일수록 선호가 높아요(1순위가 가장 높음). 기본값은 운동 있는 날 9·10·7시간, 운동 없는 날 10·11·8시간이에요(새로 최대로 채우기를 고른 달부터 적용). 여기서 직접 바꾸면 최대로 채우는 모든 달에 적용돼요.</small></div>';
     h += '<p>바꾸면 화면이 다시 불러와져요. 이미 입력한 근무시간은 지워지지 않아요. 설정은 서버에 저장할 때 같이 저장돼요.</p>' +
       '<div class="upd"><b>앱 업데이트</b><span class="m" id="updMsg">지금 쓰는 버전 ' + curVer() + '</span>' +
       '<button type="button" id="updBtn">최신 버전 확인하기</button></div>' +
@@ -136,7 +143,7 @@
     Array.prototype.forEach.call(back.querySelectorAll('.pref select'), function (sl) {
       sl.addEventListener('change', function () {
         var g = function (k) { var e = back.querySelector('select[data-p="' + k + '"]'); return e && e.value ? +e.value : null; };
-        var cur = read(), ex = [g('ex0'), g('ex1')].filter(Boolean), no = [g('no0'), g('no1'), g('no2')].filter(Boolean);
+        var cur = read(), ex = [g('ex0'), g('ex1'), g('ex2')].filter(Boolean), no = [g('no0'), g('no1'), g('no2')].filter(Boolean);
         cur.pref = { ex: ex, no: no }; write(cur); location.reload();
       });
     });

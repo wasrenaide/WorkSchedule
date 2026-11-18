@@ -290,7 +290,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.0</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.1</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼으로 계획 → 실행 → 계산 순서로 바뀌어요.<br><br>
     <b>계획</b><br>
     · 날짜를 누르면 시간이 바뀌어요. 평일 7~13, 주말 쉼·8·10·11·6.<br>
@@ -390,26 +390,29 @@ h1{font-size:17px}
   var APPSET=(function(){try{var o=JSON.parse(localStorage.getItem('app-settings-v1'));return o&&typeof o==='object'?o:{}}catch(e){return {}}})();   // 앱 설정: ex(운동) / dine(회식·약속), false면 끔. 토요일 운동은 운동에 포함(운동이 켜져 있으면 휴일 아닌 토요일에도 열림). 웹에는 없음 → 모두 켜짐
   function exOn(){return APPSET.ex!==false}
   var FILLUI=window.__fillUI===true;   // 앱에서만 켜짐: 안 열어본 달 설정 팝업 + 월별 자동 채우기 모드(min/max). 웹에는 없음 → 예전 방식(max)
-  // 선호 근무시간(앱 설정 pref:{ex:[운동 있는 날 1,2순위], no:[운동 없는 날 1,2,3순위]}): 최대 모드에서 월 최대에 딱 맞는 조합 중 높은 순위를 가장 많이 씀
+  // 선호 근무시간(앱 설정 pref:{ex:[운동 있는 날 1,2,3순위], no:[운동 없는 날 1,2,3순위]}): 최대 모드에서 월 최대에 딱 맞는 조합 중 높은 순위를 가장 많이 씀
+  var PREF_DEFAULT={ex:[9,10,7],no:[10,11,8]};   // 기본 선호: 운동 있는 날 9·10·7시간, 운동 없는 날 10·11·8시간 (새로 '최대로 채우기'를 고른 달에만 적용 → 기존 달의 숫자는 안 바뀜)
   function prefOf(){
-    if(!FILLUI||!APPSET.pref)return null;
-    var pe=(APPSET.pref.ex||[]).map(Number).filter(function(v){return v>=5&&v<=EX_MAX}),pn=(APPSET.pref.no||[]).map(Number).filter(function(v){return v>=5&&v<=13});
+    if(!FILLUI)return null;
+    var pf=APPSET.pref;
+    if(!pf){if(!(all[key()]||{}).pd)return null;pf=PREF_DEFAULT}
+    var pe=(pf.ex||[]).map(Number).filter(function(v){return v>=5&&v<=EX_MAX}),pn=(pf.no||[]).map(Number).filter(function(v){return v>=5&&v<=13});
     return pe.length&&pn.length?{ex:pe,no:pn}:null;
   }
   function prefPlan(N,ex,R){
     var P=prefOf();if(!P)return null;
     var exI=[],noI=[],k;for(k=0;k<N;k++)(ex[k]?exI:noI).push(k);
-    var e=exI.length,m=noI.length,e1=P.ex[0],e2=P.ex[1],n1=P.no[0],n2=P.no[1],n3=P.no[2],best=null,k2,j2,j3,sum,cost;
-    for(k2=0;k2<=(e2!=null?e:0);k2++)for(j2=0;j2<=(n2!=null?m:0);j2++)for(j3=0;j3<=(n3!=null?m-j2:0);j3++){
-      sum=e1*(e-k2)+(e2||0)*k2+n1*(m-j2-j3)+(n2||0)*j2+(n3||0)*j3;
+    var e=exI.length,m=noI.length,e1=P.ex[0],e2=P.ex[1],e3=P.ex[2],n1=P.no[0],n2=P.no[1],n3=P.no[2],best=null,k2,k3,j2,j3,sum,cost;
+    for(k2=0;k2<=(e2!=null?e:0);k2++)for(k3=0;k3<=(e3!=null?e-k2:0);k3++)for(j2=0;j2<=(n2!=null?m:0);j2++)for(j3=0;j3<=(n3!=null?m-j2:0);j3++){
+      sum=e1*(e-k2-k3)+(e2||0)*k2+(e3||0)*k3+n1*(m-j2-j3)+(n2||0)*j2+(n3||0)*j3;
       if(sum!==R)continue;
-      cost=k2+j2+2*j3;   // 낮은 순위를 적게 쓰는 조합이 우선
-      if(!best||cost<best.cost)best={k2:k2,j2:j2,j3:j3,cost:cost};
+      cost=k2+2*k3+j2+2*j3;   // 낮은 순위를 적게 쓰는 조합이 우선(3순위는 2순위의 두 배로 친다)
+      if(!best||cost<best.cost)best={k2:k2,k3:k3,j2:j2,j3:j3,cost:cost};
     }
     if(!best)return null;
     var val=[];
-    exI.forEach(function(i,q){val[i]=(q>=e-best.k2)?e2:e1});
-    noI.forEach(function(i,q){val[i]=(q>=m-best.j3)?n3:(q>=m-best.j3-best.j2)?n2:n1});   // 낮은 순위 값은 말일 쪽에 둠
+    exI.forEach(function(i,q){val[i]=(q>=e-best.k3)?e3:(q>=e-best.k3-best.k2)?e2:e1});   // 낮은 순위 값은 말일 쪽에 둠
+    noI.forEach(function(i,q){val[i]=(q>=m-best.j3)?n3:(q>=m-best.j3-best.j2)?n2:n1});
     return val;
   }
   function curFm(){return FILLUI?((all[key()]||{}).fm||'max'):'max'}   // 월 모드: 'min'(평일 8시간, 자동으로 안 바뀜) / 'max'(월 최대에 맞춰 자동 배분)
@@ -1135,7 +1138,8 @@ h1{font-size:17px}
     [].forEach.call(e.querySelectorAll('.fopt'),function(b){b.addEventListener('click',function(){
       var c=cur();
       if(reset){freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf}   // 오늘 이전은 지금 값으로 굳힌 뒤 오늘부터 다시
-      c.fm=b.getAttribute('data-m');save();closeFillSheet();render();
+      c.fm=b.getAttribute('data-m');if(c.fm==='max')c.pd=1;else delete c.pd;   // pd: 새 기본 선호 근무시간을 쓰는 달
+      save();closeFillSheet();render();
     })});
   }
   // 예전부터 입력해 둔 달: 지금 보이는 시간을 그대로 굳히고 '최소' 모드(자동으로 안 바뀜)로 전환
