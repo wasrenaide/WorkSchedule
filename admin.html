@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>월 근무 관리자</title>
+<style>
+:root{--bg:#f2f5f8;--surface:#fff;--fg:#13202c;--muted:#5b6a78;--line:#d8e0e8;--accent:#1f5eff}
+@media (prefers-color-scheme:dark){:root{--bg:#10161c;--surface:#1a232c;--fg:#e8eef3;--muted:#9aa9b6;--line:#2c3945;--accent:#6b9bff}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,'Apple SD Gothic Neo',sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:18px;margin:0 0 12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+input,button{font:inherit;font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+button{background:var(--surface);cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+button.del{color:#c62828}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
+tr.u{cursor:pointer}
+tr.u:hover{background:var(--bg)}
+pre{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--bg);padding:8px;border-radius:8px;max-height:50vh;overflow:auto}
+.msg{margin:8px 0;font-size:14px}.bad{color:#c62828}.ok{color:#2e7d32}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>월 근무 관리자</h1>
+<div class="card" id="login">
+  <div class="row"><input id="pw" type="password" placeholder="관리자 비밀번호" autocomplete="off"><button class="pri" id="go">들어가기</button></div>
+  <div class="msg" id="lmsg"></div>
+</div>
+<div id="app" hidden>
+  <div class="card">
+    <b>사용자 등록</b>
+    <div class="row"><input id="rn" placeholder="이름" maxlength="20"><input id="rp" placeholder="PIN 4~8자리" inputmode="numeric" maxlength="8"><button id="reg">등록</button></div>
+    <div class="msg" id="amsg"></div>
+  </div>
+  <div class="card">
+    <div class="row"><b>사용자</b><button id="refresh">새로고침</button></div>
+    <table><thead><tr><th>이름</th><th>가입</th><th>서버버전</th><th>마지막 저장</th></tr></thead><tbody id="list"></tbody></table>
+  </div>
+  <div class="card" id="detail" hidden>
+    <b id="dname"></b>
+    <div class="row"><button id="rpin">PIN 재설정</button><button class="del" id="del">사용자 삭제</button><button id="copy">JSON 복사</button></div>
+    <div id="sum" style="color:var(--muted);font-size:13px"></div>
+    <pre id="json"></pre>
+  </div>
+</div>
+</main>
+<script>
+var API='https://iqzswnpfxdjsnxlvisxf.supabase.co/rest/v1/rpc/';
+var KEY='sb_publishable_xL6Ih_CqeQ0PzfTJvJxMew_BtSMd68T';
+var ERR={bad_admin:'관리자 비밀번호가 틀렸어요.',locked:'여러 번 틀려서 10분간 잠겼어요.',duplicate:'같은 이름+PIN이 이미 있어요.',bad_pin:'PIN은 숫자 4~8자리예요.',bad_name:'이름은 1~20자예요.',network:'인터넷 연결을 확인해주세요.'};
+var pw='',cur=null,$=function(i){return document.getElementById(i)};
+function rpc(fn,a){return fetch(API+fn,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(a)}).then(function(r){return r.json()}).catch(function(){return{ok:false,error:'network'}})}
+function et(r){return ERR[r.error]||('오류: '+(r.error||r.message))}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fmt(t){if(!t)return '-';var d=new Date(t);return (d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+function msg(id,t,bad){$(id).className='msg '+(bad?'bad':'ok');$(id).textContent=t}
+$('go').onclick=function(){pw=$('pw').value;rpc('app_admin_list',{p_pw:pw}).then(function(r){if(!r.ok){msg('lmsg',et(r),true);return}$('login').hidden=true;$('app').hidden=false;draw(r.users)})};
+$('pw').onkeydown=function(e){if(e.key==='Enter')$('go').onclick()};
+function refresh(){rpc('app_admin_list',{p_pw:pw}).then(function(r){if(!r.ok){msg('amsg',et(r),true);return}draw(r.users)})}
+$('refresh').onclick=refresh;
+function draw(us){
+  $('list').innerHTML=us.length?us.map(function(u){return '<tr class="u" data-id="'+u.id+'" data-n="'+esc(u.name)+'"><td>'+esc(u.name)+'</td><td>'+fmt(u.created_at)+'</td><td>'+u.version+'</td><td>'+fmt(u.updated_at)+'</td></tr>'}).join(''):'<tr><td colspan="4">아직 사용자가 없어요.</td></tr>';
+  Array.prototype.forEach.call(document.querySelectorAll('tr.u'),function(tr){tr.onclick=function(){open_(tr.dataset.id,tr.dataset.n)}});
+}
+function open_(id,name){
+  cur={id:id,name:name};$('detail').hidden=false;$('dname').textContent=name;$('json').textContent='불러오는 중...';$('sum').textContent='';
+  rpc('app_admin_get',{p_pw:pw,p_id:id}).then(function(r){
+    if(!r.ok){$('json').textContent=et(r);return}
+    if(!r.data){$('json').textContent='(저장된 데이터 없음)';return}
+    var s='서버버전 '+r.version+' · 저장 '+fmt(r.updated_at);
+    try{var inp=JSON.parse(r.data.inputs||'{}'),ms=Object.keys(inp.months||inp).sort();s+=' · 월 '+ms.length+'개: '+ms.join(', ')}catch(e){}
+    $('sum').textContent=s;
+    var o={};Object.keys(r.data).forEach(function(k){try{o[k]=JSON.parse(r.data[k])}catch(e){o[k]=r.data[k]}});
+    $('json').textContent=JSON.stringify(o,null,1);
+  });
+}
+$('copy').onclick=function(){navigator.clipboard.writeText($('json').textContent).then(function(){msg('amsg','JSON을 복사했어요.')})};
+$('reg').onclick=function(){rpc('app_admin_register',{p_pw:pw,p_name:$('rn').value,p_pin:$('rp').value}).then(function(r){if(!r.ok){msg('amsg',et(r),true);return}msg('amsg','등록했어요.');$('rn').value='';$('rp').value='';refresh()})};
+$('rpin').onclick=function(){if(!cur)return;var p=prompt(cur.name+' 새 PIN (숫자 4~8자리)');if(!p)return;rpc('app_admin_reset_pin',{p_pw:pw,p_id:cur.id,p_new:p.trim()}).then(function(r){msg('amsg',r.ok?'PIN을 바꿨어요.':et(r),!r.ok)})};
+$('del').onclick=function(){if(!cur)return;if(!confirm(cur.name+' 사용자와 저장된 데이터를 삭제해요. 되돌릴 수 없어요. 계속할까요?'))return;if(prompt('확인을 위해 이름을 다시 입력하세요')!==cur.name){msg('amsg','이름이 달라서 취소했어요.',true);return}rpc('app_admin_delete',{p_pw:pw,p_id:cur.id}).then(function(r){if(!r.ok){msg('amsg',et(r),true);return}msg('amsg','삭제했어요.');$('detail').hidden=true;cur=null;refresh()})};
+</script>
+</body>
+</html>
