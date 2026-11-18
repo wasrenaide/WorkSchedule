@@ -309,7 +309,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.18</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.19</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -323,6 +323,7 @@ h1{font-size:17px}
     · 처음 여는 달은 달력이 흐려지고 <b>이 달 설정하기</b>가 떠요. 둘 중 하나를 골라요.<br>
     · <b>최소로 시작</b>: 평일 8시간. 다른 날을 바꿔도 나머지는 그대로예요.<br>
     · <b>최대로 채우기</b>: 월 최대 시간에 맞춰 자동으로 나눠요. 하루 길이는 근무시간 + 운동 1시간으로 보고, 긴 날을 월초에 모아요.<br>
+    · <b>패밀리데이</b>(21일이 속한 주 금요일): 선택창에서 휴가(연차)로 처리할지 일반 근무일로 둘지 골라요. 고른 값은 기억해요.<br>
     · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말 근무·휴가(연차)·약속·일정(지정한 시간)을 넣어 뒀다면 <b>초기화해도 유지할 것</b>을 체크해서 골라요(기본은 모두 유지, 체크를 끄면 같이 지워져요). <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
     <b>실행</b> 오늘까지의 실제 기록<br>
     · 지난 날과 오늘은 눌러서 시·분을 고쳐요. 오늘은 시간을 쓰기 전에도 운동 칸을 누를 수 있어요.<br>
@@ -342,6 +343,7 @@ h1{font-size:17px}
     · <b>⚙ 설정</b>: 운동·약속 켜고 끄기, 선호 근무시간, 앱 업데이트, 관리자 페이지. 바꾸면 바로 적용돼요.<br>
     · 자동·라이트·다크: 화면 색이에요. 이 폰에만 저장돼요.<br><br>
     <b>선호 근무시간</b> (⚙ 설정)<br>
+    · 설정에서 <b>선호 근무시간</b> 스위치를 켜면 순위 칸이 열려요(접어 둬도 값은 적용돼요).<br>
     · 최대로 채울 때 쓸 시간을 1·2·3순위로 정해요. 월 최대에 딱 맞는 조합 중 1순위를 가장 많이 써요.<br>
     · 운동 있는 날과 없는 날을 따로 정해요(운동을 끄면 한 줄). 기본은 운동 9·10·7시간, 없는 날 10·11·8시간이에요.<br>
     · 새로 최대로 채우는 달부터 적용돼요. 이미 정해진 날은 안 바뀌어요.<br><br>
@@ -1237,6 +1239,11 @@ h1{font-size:17px}
   }
   // 오늘 이후의 휴가(연차) 날짜들
   // 월 초기화 팝업의 '유지할 것' 한 줄(체크됨 = 유지)
+  // 패밀리데이(21일이 속한 주 금요일, 공휴일이면 전주) 날짜 id
+  function fdId(){var d21=new Date(vy,vm,21),n=21-((d21.getDay()+6)%7)+4;while(n>7&&HOL[idOf(new Date(vy,vm,n))])n-=7;return idOf(new Date(vy,vm,n))}
+  var FDK='fd-leave-v1';
+  function fdLeaveGet(){try{return localStorage.getItem(FDK)==='1'}catch(e){return false}}
+  function fdLeaveSet(on){try{localStorage.setItem(FDK,on?'1':'0')}catch(e){}}
   function keepRow(k,title,detail){return '<button type="button" class="keeprow" data-k="'+k+'" aria-pressed="true"><span class="ck">✓</span><span class="kt"><b>'+title+'</b><small>'+detail+'</small></span></button>'}
   // 오늘 이후의 일정(시간을 지정한 날) 날짜들
   function schedDays(c){var t=idOf(new Date());return Object.keys(c.sc||{}).filter(function(id){return id>=t&&c.sc[id]&&/^[0-9]+$/.test(c.d[id]||'')}).sort()}
@@ -1248,7 +1255,7 @@ h1{font-size:17px}
   function openFillSheet(kind){
     closeFillSheet();
     var reset=kind==='reset',cap=capOf(monthDays().length),e=document.createElement('div');
-    var wk=reset?weekendWork(cur()):[],keepWk=true,lv=reset?leaveDays(cur()):[],keepLv=true,pm=reset?dineDays(cur()):[],keepPm=true,sc=reset?schedDays(cur()):[],keepSc=true;   // lv: 오늘 이후 휴가(연차) 날짜. pm: 오늘 이후 약속 날짜. keep*: 초기화해도 유지할지   // wk: 오늘 이후 주말에 입력해 둔 근무(날짜). keepWk: 초기화해도 유지할지
+    var fdLv=fdLeaveGet(),wk=reset?weekendWork(cur()):[],keepWk=true,lv=reset?leaveDays(cur()).filter(function(id){return !(FILLUI&&id===fdId())}):[],keepLv=true,pm=reset?dineDays(cur()):[],keepPm=true,sc=reset?schedDays(cur()):[],keepSc=true;   // lv: 오늘 이후 휴가(연차) 날짜. pm: 오늘 이후 약속 날짜. keep*: 초기화해도 유지할지   // wk: 오늘 이후 주말에 입력해 둔 근무(날짜). keepWk: 초기화해도 유지할지
     e.className='sheet';e.id='fillSheet';
     e.innerHTML='<div class="backdrop" id="fillBg"></div><div class="panel" role="dialog" aria-modal="true"><h2>'+(vm+1)+(reset?'월 초기화':'월은 어떻게 시작할까요?')+'</h2>'+
       (reset?'<p class="note" style="text-align:center">오늘부터의 계획과 기록이 지워지고, 아래 방식으로 다시 시작해요. 오늘 이전 기록은 그대로예요. 하고 나서도 ‘↶ 되돌리기’로 한 단계 되돌릴 수 있어요.</p>':'')+
@@ -1257,6 +1264,7 @@ h1{font-size:17px}
         (lv.length?keepRow('lv','휴가(연차) '+lv.length+'일',lv.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+')'}).join(', ')):'')+
         (pm.length?keepRow('pm','약속 '+pm.length+'일 (8시간 고정)',pm.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+')'}).join(', ')):'')+
         (sc.length?keepRow('sc','일정 '+sc.length+'일 (지정한 시간)',sc.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+') '+c0d(id)+'시간'}).join(', ')):'')+'</div>':'')+
+      (FILLUI?'<div class="keepbar"><b>패밀리데이</b><small>'+(+fdId().slice(8))+'일(금)을 어떻게 할까요?</small><button type="button" class="keeprow" data-k="fd" aria-pressed="'+fdLeaveGet()+'"><span class="ck">'+(fdLeaveGet()?'✓':'')+'</span><span class="kt"><b>휴가(연차)로 처리</b><small>끄면 일반 근무일로 계산해요</small></span></button></div>':'')+
       '<button type="button" class="fopt" data-m="min"><b>최소로 시작</b><small>평일 8시간으로 채워요(주 40시간 기준). 다른 날을 고쳐도 나머지 숫자는 자동으로 안 바뀌어요.</small></button>'+
       '<button type="button" class="fopt" data-m="max"><b>최대로 채우기</b><small>월 최대 '+cap+'시간에 맞춰 자동으로 나눠요. 한 날을 고치면 뒤쪽 날짜가 다시 맞춰져요.</small></button>'+
       (reset?'<button type="button" class="fopt fall" data-m="all"><b>이 달 전부 지우기</b><small>지난 날 기록까지 이 달의 모든 입력을 지우고, 설정 전 상태로 돌아가요. ↶ 되돌리기로 한 단계 되돌릴 수 있어요.</small></button>':'')+
@@ -1266,7 +1274,7 @@ h1{font-size:17px}
     [].forEach.call(e.querySelectorAll('.keeprow'),function(b){b.addEventListener('click',function(){   // 유지할 것 체크 토글
       var on=b.getAttribute('aria-pressed')!=='true',k=b.getAttribute('data-k');
       b.setAttribute('aria-pressed',on);b.querySelector('.ck').textContent=on?'✓':'';
-      if(k==='wk')keepWk=on;else if(k==='lv')keepLv=on;else if(k==='pm')keepPm=on;else if(k==='sc')keepSc=on;
+      if(k==='wk')keepWk=on;else if(k==='lv')keepLv=on;else if(k==='pm')keepPm=on;else if(k==='sc')keepSc=on;else if(k==='fd'){fdLv=on;fdLeaveSet(on)}
     })});
     [].forEach.call(e.querySelectorAll('.fopt'),function(b){b.addEventListener('click',function(){
       if(b.getAttribute('data-m')==='all'){   // 이 달 전부 지우기: 한 번 더 확인
@@ -1287,6 +1295,7 @@ h1{font-size:17px}
         freezePast();clearFuture(c,['d','x','lk','a','ax','sc']);delete c.xf;   // 오늘 이전은 지금 값으로 굳힌 뒤 오늘부터 다시
         Object.keys(keep.d).forEach(function(id){c.d[id]=keep.d[id]});Object.keys(keep.x).forEach(function(id){c.x[id]=keep.x[id]});Object.keys(keep.sc).forEach(function(id){c.sc[id]=true});   // 유지할 주말 근무를 되돌려 놓음(고정 시간으로 취급)
       }
+      if(FILLUI&&fdLv){var fid=fdId(),fw=new Date(fid+'T00:00:00').getDay();if(fid>=idOf(new Date())&&fw>=1&&fw<=5&&!HOL[fid]&&!c.d[fid])c.d[fid]='leave'}   // 패밀리데이를 휴가로: 오늘 이후이고 이미 입력한 게 없을 때만
       c.fm=b.getAttribute('data-m');if(c.fm==='max')c.pd=1;else delete c.pd;   // pd: 새 기본 선호 근무시간을 쓰는 달
       save();closeFillSheet();render();
     })});
