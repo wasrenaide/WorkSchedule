@@ -147,6 +147,9 @@ body.lowminb{--bg:#ffefd9}
 .keeprow[aria-pressed="true"] .ck{background:var(--accent);border-color:var(--accent)}
 .keeprow .kt{display:flex;flex-direction:column;min-width:0}.keeprow .kt b{font-size:14px}.keeprow .kt small{color:var(--muted);font-size:12px;line-height:1.4;word-break:keep-all}
 #fillSheet .panel{max-height:92vh;overflow-y:auto}
+#fillSheet .ftop{position:sticky;top:-14px;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-14px -16px 0;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+#fillSheet .ftop h2{margin:0;font-size:17px}
+#fillSheet .ftop button{font:inherit;font-size:14px;font-weight:700;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 .wkseg button{flex:1;font:inherit;font-size:14px;padding:9px 6px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 .wkseg button:first-child{border-radius:10px 0 0 10px}.wkseg button:last-child{border-radius:0 10px 10px 0;border-left:0}
 .wkseg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
@@ -263,7 +266,7 @@ h1{font-size:17px}
 </style>
 <script>window.__fillUI=true</script>
 <style>.app{padding-top:calc(env(safe-area-inset-top,0px) + 6px)}
-@media (display-mode:standalone){.app{padding-top:max(calc(env(safe-area-inset-top,0px) + 6px),52px)}}
+@media (display-mode:standalone){.app{padding-top:max(calc(env(safe-area-inset-top,0px) + 6px),26px)}}
 /* 표시 안 한 운동/회식·약속 칸은 빈칸(색·글자 없음). 눌러서 켜고 끔 */
 .cell .ex[data-s=off],.warnex .cell:not(.past) .ex[data-s=off]{background:transparent;color:transparent;border-top-color:transparent;font-weight:400}</style>
 </head>
@@ -309,7 +312,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.19</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.6.20</small>
     <p class="note"><b>모드</b> 맨 오른쪽 버튼을 누를 때마다 계획 → 실행 → 계산 순서로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -1257,7 +1260,7 @@ h1{font-size:17px}
     var reset=kind==='reset',cap=capOf(monthDays().length),e=document.createElement('div');
     var fdLv=fdLeaveGet(),wk=reset?weekendWork(cur()):[],keepWk=true,lv=reset?leaveDays(cur()).filter(function(id){return !(FILLUI&&id===fdId())}):[],keepLv=true,pm=reset?dineDays(cur()):[],keepPm=true,sc=reset?schedDays(cur()):[],keepSc=true;   // lv: 오늘 이후 휴가(연차) 날짜. pm: 오늘 이후 약속 날짜. keep*: 초기화해도 유지할지   // wk: 오늘 이후 주말에 입력해 둔 근무(날짜). keepWk: 초기화해도 유지할지
     e.className='sheet';e.id='fillSheet';
-    e.innerHTML='<div class="backdrop" id="fillBg"></div><div class="panel" role="dialog" aria-modal="true"><h2>'+(vm+1)+(reset?'월 초기화':'월은 어떻게 시작할까요?')+'</h2>'+
+    e.innerHTML='<div class="backdrop" id="fillBg"></div><div class="panel" role="dialog" aria-modal="true"><div class="ftop"><h2>'+(vm+1)+(reset?'월 초기화':'월은 어떻게 시작할까요?')+'</h2><button type="button" id="fillClose2">닫기</button></div>'+
       (reset?'<p class="note" style="text-align:center">오늘부터의 계획과 기록이 지워지고, 아래 방식으로 다시 시작해요. 오늘 이전 기록은 그대로예요. 하고 나서도 ‘↶ 되돌리기’로 한 단계 되돌릴 수 있어요.</p>':'')+
       (wk.length||lv.length||pm.length||sc.length?'<div class="keepbar"><b>초기화해도 유지할 것을 골라요</b><small>체크한 것은 그대로 남고, 체크를 끄면 같이 지워져요.</small>'+
         (wk.length?keepRow('wk','주말 근무 '+wk.length+'일',wk.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+') '+c0d(id)+'시간'}).join(', ')):'')+
@@ -1270,7 +1273,7 @@ h1{font-size:17px}
       (reset?'<button type="button" class="fopt fall" data-m="all"><b>이 달 전부 지우기</b><small>지난 날 기록까지 이 달의 모든 입력을 지우고, 설정 전 상태로 돌아가요. ↶ 되돌리기로 한 단계 되돌릴 수 있어요.</small></button>':'')+
       '<button type="button" class="ghost" id="fillCancel">'+(reset?'취소':'나중에')+'</button></div>';
     document.body.appendChild(e);
-    $('fillBg').addEventListener('click',closeFillSheet);$('fillCancel').addEventListener('click',closeFillSheet);
+    $('fillBg').addEventListener('click',closeFillSheet);$('fillCancel').addEventListener('click',closeFillSheet);$('fillClose2').addEventListener('click',closeFillSheet);
     [].forEach.call(e.querySelectorAll('.keeprow'),function(b){b.addEventListener('click',function(){   // 유지할 것 체크 토글
       var on=b.getAttribute('aria-pressed')!=='true',k=b.getAttribute('data-k');
       b.setAttribute('aria-pressed',on);b.querySelector('.ck').textContent=on?'✓':'';
