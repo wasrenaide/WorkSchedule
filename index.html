@@ -61,7 +61,7 @@ h2{font-size:16px;margin:0}
 .cell small{font:400 10px var(--font-ui);color:var(--muted)}
 .cell .drow{align-self:flex-start;margin-left:4px;max-width:calc(100% - 4px);display:flex;align-items:center;gap:2px;overflow:hidden;white-space:nowrap}
 .cell .tag{font:400 8px/1 var(--font-ui);color:var(--muted)}
-.cell .d.sat,.cell .d.red{color:#fff;border-radius:9px;padding:0 4px;font-weight:700}
+.cell .d.sat,.cell .d.red{color:#fff;border-radius:9px;padding:0 4px;margin:0 -4px;font-weight:700}   /* margin: 안쪽 여백만큼 빼서 숫자 위치는 평일과 같게 */
 .cell .d.sat{background:hsl(215 80% 50%)}
 .cell .d.red{background:hsl(0 70% 48%)}
 .cell .main.hrs{background:hsl(var(--h) 65% 50%/var(--tint-a))}
@@ -190,7 +190,7 @@ h1{font-size:17px}
 .cell .tm .dp{font:500 8px/1 var(--font-num)}
 .cell .drow{margin-left:2px}
 .cell small{font-size:9px}
-.cell .d.sat,.cell .d.red{padding:0 3px;border-radius:7px}
+.cell .d.sat,.cell .d.red{padding:0 3px;margin:0 -3px;border-radius:7px}
 .cell .ex,.cell .nex{height:14px}
 .cell .ex{font-size:7px}
 .cell.rest .main{font-size:13px}
@@ -229,13 +229,18 @@ h1{font-size:17px}
   .ttl small{font-size:12px}
 }
 /* ===== 계산 모드 ===== */
-.cview{display:flex;flex-direction:column;gap:8px}
+.cview{display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.cview .cres{min-height:0}
+.cview.tight{gap:5px}.cview.tight .cfield{padding:5px;gap:3px}.cview.tight .ctime{font-size:26px;padding:0}.cview.tight .cfield .steps button,.cview.tight .cex3 button{min-height:28px}.cview.tight .cres{padding:6px}.cview.tight .cres .big{font-size:34px}
 .cview .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .cfield{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:8px;background:var(--bg);min-width:0}
 .cfield label{font-size:12px;color:var(--muted)}
 .ctime{font:600 34px/1.1 var(--font-num);border:0;background:none;padding:2px 0;text-align:center;color:var(--fg)}
 .cfield .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
 .cfield .steps button{min-height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;padding:0}
+.cex3{display:grid;grid-template-columns:1fr 2fr 1fr;gap:4px}
+.cex3 button{min-height:38px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:500 14px var(--font-num);padding:0}
+.cex3 button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
 .cex6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
 .cex6 button{min-height:38px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:500 14px var(--font-num);padding:0}
 .cex6 button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
@@ -259,7 +264,7 @@ h1{font-size:17px}
 .limbtn:disabled{opacity:1;cursor:default}
 @media (min-width:600px){.todaybtn{min-height:34px;font-size:15px;padding:0 14px}}
 .cell .drow{width:calc(100% - 4px)}
-.cell .main{display:grid;grid-template-rows:auto 1fr;justify-items:center;align-items:center;padding-top:0}
+.cell .main{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;justify-content:stretch;justify-items:center;align-items:center;padding-top:0}
 .cell .main .drow{justify-self:start;align-self:start;margin-top:2px}
 .cell .main.hrs,.cell .main.gry,.cell .main.gry0{}
 .cell .fd{margin-left:auto;color:var(--accent);font-weight:500}   /* 패밀리데이: 날짜 숫자와 같은 크기, 오른쪽 정렬 */
@@ -279,6 +284,12 @@ h1{font-size:17px}
 .cell .ex[data-s=off],.warnex .cell:not(.past) .ex[data-s=off]{background:transparent;color:transparent;border-top-color:transparent;font-weight:400}</style>
 <style>html,body{touch-action:manipulation}</style>
 <script>['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})})</script>
+<style>#cal{grid-template-rows:repeat(6,var(--ch))}
+.app{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.hint{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;margin:0;padding:9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.25);font-size:13px;color:var(--fg)}
+.hint[hidden]{display:none}
+.err[hidden]{display:block;visibility:hidden}
+.err{min-height:18px}</style>
 </head>
 <body>
 <main class="app">
@@ -323,8 +334,8 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.8.1</small>
-    <p class="note"><b>모드</b> 아래의 <b>계획 / 실행 / 계산</b> 버튼을 누르면 바로 그 모드로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.8.3</small>
+    <p class="note"><b>모드</b> 아래의 <b>계획 / 실행 / 계산</b> 버튼을 누르면 바로 그 모드로 바뀌어요. 달력은 항상 6줄로 보여서(5줄인 달은 아래가 비어요) 달을 넘겨도 아래 메뉴 위치가 그대로예요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
     · 날짜 아래 칸은 누를 때마다 빈칸 → 운동(초록) → 약속(주황) → 빈칸. 약속은 그날 8시간 고정이고, 토요일은 운동만 돼요. ▲ 올림 / ▼ 내림으로 순서 방향을 바꿔요.<br>
@@ -344,7 +355,7 @@ h1{font-size:17px}
     · 지난 날과 오늘은 눌러서 시·분을 고쳐요. 운동 칸을 누르면 초록으로 반짝이는 ‘운동✓’로 바뀌어요(기록 없는 날도 가능). 실행 모드에서는 운동✓로만 바뀌고, 운동을 빼려면 계획 모드에서 그 칸을 눌러요. 오늘은 시간을 쓰기 전에도 운동 칸을 누를 수 있어요.<br>
     · 요약에 예상 합계와 차이가 나와요. 올림/내림은 쓰지 않아요.<br><br>
     <b>계산</b> 오늘 퇴근 시각 계산<br>
-    · 출근·퇴근 시각을 누르면 돌림판이 열려요. 체류 4:30 이상 30분, 9:00 이상 1시간이 자동으로 빠지고, 제외시간은 그 위에 더 빼요. 제외시간은 10분 단위 버튼 외에 <b>직접 입력</b>으로 시·분을 골라요.<br>
+    · 출근·퇴근 시각을 누르면 돌림판이 열려요. 체류 4:30 이상 30분, 9:00 이상 1시간이 자동으로 빠지고, 제외시간은 그 위에 더 빼요. 제외시간은 <b>−10분 / +10분</b> 버튼으로 10분씩 바꾸고, 가운데 <b>직접 입력</b>을 누르면 시·분을 골라요(직접 입력한 값에서도 10분씩 바뀌어요).<br>
     · <b>출근 초기화</b>는 출근을 08:00으로, <b>퇴근 초기화</b>는 오늘 계획에 맞는 퇴근 시각으로 되돌려요.<br><br>
     <b>위쪽 요약</b><br>
     · <b>보는 기준 [최대 | 최소]</b>: 합계를 어느 쪽과 비교할지 골라요.<br>
@@ -397,6 +408,7 @@ h1{font-size:17px}
     if(dd==='off'||dd==='leave')return false;
     return wd>=1&&wd<=5&&!HOL[id];
   }
+  var lastSumH=0;   // 계획·실행 모드의 요약 칸 높이(계산 모드에서 같은 높이로 맞춤)
   var lastCalH=0;   // 달력 영역 높이: 계산 모드 화면 높이를 맞춰 모드 버튼 위치가 안 바뀌게
   var CK='calc-state-v1', cs={in:480,out:1080,ex:0,date:'',plan:null}, lastDed=null;   // 계산 모드: 출근·퇴근(분), 제외시간(분), 기본값을 만든 날짜, 그날 계획 시간
   try{var rawc=localStorage.getItem(CK);if(rawc)cs=Object.assign(cs,JSON.parse(rawc))}catch(e){}
@@ -631,15 +643,25 @@ h1{font-size:17px}
   }
   // 계산 모드: 체류시간 기준 자동 차감(4:30 이상 30분, 9:00 이상 60분)은 제외시간과 무관, 제외시간은 그 위에 추가로 뺌
   function hm(m){m=((m%1440)+1440)%1440;return pad(Math.floor(m/60))+':'+pad(m%60)}
+  function renderCalcEx(){   // 앱: 제외시간은 −10 / 직접 입력 / +10 (직접 입력한 값에서도 10분씩 늘고 줄어요)
+    var ex=$('cEx');
+    if(!ex.getAttribute('data-v2')){
+      ex.setAttribute('data-v2','1');ex.className='cex3';
+      ex.innerHTML='<button type="button" data-exd="-10">−10분</button><button type="button" id="cExMid">직접 입력</button><button type="button" data-exd="10">+10분</button>';
+      var old=$('cExHand');if(old)old.hidden=true;
+    }
+    var mid=$('cExMid');mid.textContent=cs.ex>0?fmtHM(cs.ex)+' · 직접 입력':'0분 · 직접 입력';mid.setAttribute('aria-pressed',cs.ex>0);
+  }
   function renderCalc(){
     var stay=cs.out-cs.in;if(stay<=0)stay+=1440;
     var ded=stay>=540?60:stay>=270?30:0,work=Math.max(0,stay-ded-cs.ex);
     $('cInT').textContent=hm(cs.in);
     $('cOutT').textContent=hm(cs.out);
+    if(FILLUI){renderCalcEx()}
     var ex=$('cEx');
-    if(!ex.children.length){[0,10,20,30,40,50].forEach(function(v){var b=document.createElement('button');b.type='button';b.dataset.ex=v;b.textContent=v;ex.appendChild(b)})}
-    [].forEach.call(ex.children,function(b){b.setAttribute('aria-pressed',+b.dataset.ex===cs.ex)});
-    var hand=cs.ex%10!==0||cs.ex>50;$('cExHand').setAttribute('aria-pressed',hand);$('cExHand').textContent=hand?'직접 입력: '+fmtHM(cs.ex)+' ('+cs.ex+'분)':'직접 입력';
+    if(!FILLUI&&!ex.children.length){[0,10,20,30,40,50].forEach(function(v){var b=document.createElement('button');b.type='button';b.dataset.ex=v;b.textContent=v;ex.appendChild(b)})}
+    if(!FILLUI)[].forEach.call(ex.children,function(b){b.setAttribute('aria-pressed',+b.dataset.ex===cs.ex)});
+    if(!FILLUI){var hand=cs.ex%10!==0||cs.ex>50;$('cExHand').setAttribute('aria-pressed',hand);$('cExHand').textContent=hand?'직접 입력: '+fmtHM(cs.ex)+' ('+cs.ex+'분)':'직접 입력'}
     $('cBig').innerHTML=fmtHM(work)+'<small>근무시간 · '+fmtD(work)+'시간'+(cs.plan?' · 오늘 계획 '+fmtD(cs.plan*60)+'시간':'')+'</small>';
     // 자동 차감 단계가 바뀌면 바탕이 빨갛게 세 번 깜빡임
     if(lastDed!==null&&lastDed!==ded){var el=document.querySelector('.calc');el.classList.remove('dflash','dflash-g');void el.offsetWidth;el.classList.add(ded>lastDed?'dflash':'dflash-g')}   // 차감이 커지면 빨강, 작아지면 초록
@@ -670,6 +692,30 @@ h1{font-size:17px}
     $('calStat').textContent=txt;
   }
   function FILLUI_EARLY(){return window.__fillUI===true}
+  // 앱: 달력은 항상 6줄. 화면 높이에서 달력 밖 영역(위·아래 메뉴)을 뺀 만큼을 6줄로 나눠 칸 높이를 정함 → 달이 달라도 아래 메뉴 위치가 고정되고 맨 아래 설정까지 한 화면에 들어옴
+  var fitBusy=false;
+  function fitCells(){
+    if(!FILLUI||calcMode||fitBusy)return;
+    var app=document.querySelector('.app'),cal=$('cal');if(!app||!cal||cal.hidden||!cal.offsetHeight)return;
+    fitBusy=true;
+    try{
+      var gap=parseFloat(getComputedStyle(cal).rowGap)||2,other=app.offsetHeight-cal.offsetHeight;
+      var avail=window.innerHeight-other,ch=Math.floor((avail-5*gap)/6),mx=window.innerWidth>=600?130:80;
+      ch=Math.max(40,Math.min(mx,ch));
+      app.style.setProperty('--ch',ch+'px');
+    }finally{fitBusy=false}
+  }
+  window.addEventListener('resize',function(){fitCells()});window.addEventListener('orientationchange',function(){setTimeout(fitCells,200)});
+  if(window.ResizeObserver&&FILLUI){   // 달력 밖 영역(요약·저장 알림·아래 버튼)의 높이가 바뀌면 칸 높이를 다시 맞춤
+    var ro2=new ResizeObserver(function(){requestAnimationFrame(fitCells)}),seen=[];
+    var watch=function(){   // 저장 알림·서버 줄은 다른 스크립트가 나중에 만들기 때문에 로드 뒤에 다시 찾아서 지켜봄
+      ['cloudBar','cloudRow'].forEach(function(i){var e=$(i);if(e&&seen.indexOf(e)<0){seen.push(e);ro2.observe(e)}});
+      [].forEach.call(document.querySelectorAll('.sum,.foot,header'),function(e){if(seen.indexOf(e)<0){seen.push(e);ro2.observe(e)}});
+      fitCells();
+    };
+    watch();window.addEventListener('load',watch);setTimeout(watch,800);
+    new MutationObserver(function(){requestAnimationFrame(fitCells)}).observe(document.body,{attributes:true,attributeFilter:['class']});   // 저장 안 된 변경 알림 줄이 생기거나 사라질 때
+  }else window.addEventListener('load',function(){fitCells()});
   function syncModeSeg(){   // 앱: 계획/실행/계산 버튼 세 개(눌러서 바로 그 모드로). 웹은 예전 순환 버튼
     var sg=$('modeSeg');if(!sg)return;sg.hidden=!FILLUI;$('runMode').hidden=FILLUI;
     var cm=calcMode?'calc':runMode?'run':'plan';
@@ -697,10 +743,15 @@ h1{font-size:17px}
       if(FILLUI){$('resetEdits').textContent='출근 초기화';$('resetEdits').disabled=false;$('resetMonth').textContent='퇴근 초기화';$('resetMonth').hidden=ro()}   // 앱 계산 모드: 되돌리기→출근 초기화, 월 초기화→퇴근 초기화
       var ce=document.querySelector('.calc');ce.classList.remove('under','over','lowmin');document.body.classList.remove('lowminb');if($('basisTog'))$('basisTog').hidden=true;   // 계산 모드: 기준 토글·최소 경고 끔
       if(cs.date!==idOf(new Date()))calcDefault();
-      var cvh=lastCalH;if(cvh)$('calcView').style.minHeight=cvh+'px';
+      var cvh=lastCalH;
+      if(FILLUI){   // 앱: 계산 화면 높이를 달력 높이에 딱 맞추고, 아래 요약 칸도 같은 높이로 둬서 위·아래 메뉴 위치가 모드마다 같게
+        if(cvh){$('calcView').style.height=cvh+'px';$('calcView').classList.toggle('tight',cvh<390)}
+        document.querySelector('.sum').style.minHeight=lastSumH?lastSumH+'px':'';
+      }else if(cvh)$('calcView').style.minHeight=cvh+'px';
       renderCalc();return;
     }
-    document.documentElement.style.setProperty('--rows',Math.ceil((ds[0].dow+ds.length)/7));
+    if(FILLUI){$('calcView').style.height='';document.querySelector('.sum').style.minHeight=''}
+    document.documentElement.style.setProperty('--rows',FILLUI?6:Math.ceil((ds[0].dow+ds.length)/7));   // 앱: 항상 6줄 기준
     $('runMode').textContent=runMode?'실행 모드':'계획 모드';
     $('runMode').setAttribute('aria-pressed',runMode);
     syncModeSeg();
@@ -847,6 +898,8 @@ h1{font-size:17px}
     updateFillBox();ensureBasisUI();
     try{sessionStorage.setItem('view-month-v1',key())}catch(e){}   // 지금 보는 달 기억(새로 불러온 뒤 복원용)
     $('cal').classList.toggle('leavemode',leaveMode);
+    fitCells();
+    if(FILLUI)lastSumH=document.querySelector('.sum').offsetHeight;
     var calcEl=document.querySelector('.calc');
     calcEl.classList.toggle('under',!runMode&&tm<cap*60&&!lowMin);   // 최대 미만: 초록 (최소 미달이면 경고색이 우선)
     calcEl.classList.toggle('lowmin',lowMin);document.body.classList.toggle('lowminb',lowMin);   // 최소 미달: 달력 카드 + 화면 전체 배경 경고
@@ -928,7 +981,8 @@ h1{font-size:17px}
 
   $('calcView').addEventListener('click',function(e){
     var b=e.target.closest('button');if(!b)return;
-    if(b.id==='cExHand'){openCex();return}
+    if(b.id==='cExHand'||b.id==='cExMid'){openCex();return}
+    if(b.dataset.exd!=null){cs.ex=Math.max(0,Math.min(600,cs.ex+(+b.dataset.exd)));csSave();renderCalc();return}
     if(b.dataset.ex!=null){cs.ex=+b.dataset.ex;csSave();renderCalc();return}
     if(b.dataset.c){
       var p=b.dataset.c.split(':'),k=p[0],a=p[1];
