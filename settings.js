@@ -50,8 +50,10 @@
     '#setBox .it{padding:8px 0}' +
     '#setBox .top .tb{display:flex;gap:6px;align-items:center}' +
     '#setBox .top .q{width:34px;height:34px;padding:0;border-radius:50%}#setBox .top .q[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}' +
-    '#setBox .helpbox{margin:0 0 6px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}' +
-    '#setBox .helpbox p{margin:6px 0;font-size:12px;line-height:1.5;color:var(--muted)}#setBox .helpbox p b{color:var(--fg)}' +
+    '#setBox .hq{margin-left:6px;width:20px;height:20px;padding:0;border-radius:50%;border:1px solid var(--muted);background:var(--surface);color:var(--muted);font:700 12px/1 var(--font-ui,inherit);vertical-align:middle}' +
+    '#hpop{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:24px}' +
+    '#hpop .hbox{max-width:340px;background:var(--surface);color:var(--fg);border-radius:16px;padding:16px 18px;box-shadow:0 10px 30px rgba(0,0,0,.3)}' +
+    '#hpop .hbox b{font-size:16px}#hpop .hbox p{margin:8px 0;font-size:14px;line-height:1.55;color:var(--fg)}#hpop .hbox small{display:block;margin-top:6px;font-size:11px;color:var(--muted)}' +
     '#setBox .it .t{min-width:0}#setBox .it small.m{margin-top:1px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '#setBox .it small.m.ok{color:#2e7d32}#setBox .it small.m.bad{color:#c62828}#setBox .it small.m.new{color:var(--accent);font-weight:700}' +
     '#setBox .mini{flex:none;font:inherit;font-size:14px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}' +
@@ -156,7 +158,6 @@
   var back = null;
   function close() { if (back) { back.remove(); back = null; } }
   function open() {
-    helpOn = false;
     back = document.createElement('div'); back.id = 'setBack';
     // 설정 창은 바깥을 눌러도 닫히지 않고, '닫기' 버튼으로만 닫음(실수로 닫히는 것 방지)
     document.body.appendChild(back);
@@ -206,26 +207,33 @@
     });
   }
 
-  var helpOn = false;
   var HELP = [
     ['약속', '평일 칸에서 눌러 표시해요. 그날은 8시간으로 고정돼요. 끄면 약속 단계가 빠져요.'],
     ['선호 근무시간', '"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 1순위를 가장 많이 써요. 시간이 많은 날은 월초로 모아요. 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 쓰이지 않고, 이미 정해진 날은 안 바뀌어요. 스위치를 꺼도 정한 값은 그대로 적용돼요.'],
     ['운동', '끄면 운동 칸과 "운동 n/7" 표시가 사라지고, 운동 횟수 조건 없이 근무시간만 배분해요.'],
     ['운동 목표 횟수', '한 달에 운동하려는 횟수예요(기본 7번). 토요일 운동도 들어가요. 모자라면 빨갛게 알려줘요.'],
-    ['지난 기록 지우기', '누르면 지울 달을 고르는 창이 떠요. 이 폰에서 지워지고, 서버에도 지우려면 지운 뒤 ☁ 서버 저장을 눌러요. 저장 전에는 "저장 안 한 변경 되돌리기"로 복구할 수 있고, 저장하면 되돌릴 수 없어요. 기록이 없는 지난 달은 빈 달로 보여요.'],
+    ['지난 기록 지우기', '누르면 지울 달을 고르는 창이 떠요. 이번 달과 앞으로의 달은 지우지 않고, 이 폰에 기록이 남아 있는 지난 달만 목록에 떠요(없으면 ‘지울 달 없음’). 이 폰에서 지워지고, 서버에도 지우려면 지운 뒤 ☁ 서버 저장을 눌러요. 저장 전에는 "저장 안 한 변경 되돌리기"로 복구할 수 있고, 저장하면 되돌릴 수 없어요. 기록이 없는 지난 달은 빈 달로 보여요.'],
     ['앱 업데이트', '새 버전이 있는지 확인해요. 갱신해도 근무 기록과 설정은 그대로 남아요.'],
     ['관리자', '사용자 관리와 월별 최소 근무시간을 입력하는 페이지예요. 관리자 비밀번호가 있어야 들어갈 수 있어요.']
   ];
-  function swRow(name, k, on_) { return '<div class="it"><div class="t"><b>' + name + '</b></div><button type="button" class="sw' + (on_ ? ' on' : '') + '" data-k="' + k + '" aria-label="' + name + '"></button></div>'; }
+  function hq(name) { return '<button type="button" class="hq" data-hq="' + name + '" aria-label="' + name + ' 설명">?</button>'; }
+  function showHelp(name) {   // 항목별 도움말 팝업: 아무 데나 누르면 닫힘
+    var old = document.getElementById('hpop'); if (old) old.remove();
+    var t = ''; HELP.forEach(function (x) { if (x[0] === name) t = x[1]; });
+    var e = document.createElement('div'); e.id = 'hpop';
+    e.innerHTML = '<div class="hbox"><b>' + name + '</b><p>' + t + '</p><small>아무 데나 누르면 닫혀요</small></div>';
+    e.addEventListener('click', function () { e.remove(); });
+    document.body.appendChild(e);
+  }
+  function swRow(name, k, on_) { return '<div class="it"><div class="t"><b>' + name + '</b>' + hq(name) + '</div><button type="button" class="sw' + (on_ ? ' on' : '') + '" data-k="' + k + '" aria-label="' + name + '"></button></div>'; }
   function build() {
     var bx0 = document.getElementById('setBox'), prevTop = bx0 ? bx0.scrollTop : 0;
     var o = read();
-    var h = '<div id="setBox"><div class="top"><h2>설정</h2><span class="tb"><button type="button" class="q" id="setHelp" aria-pressed="' + helpOn + '" aria-label="설명 보기">?</button><button type="button" id="setClose2">닫기</button></span></div>';
-    if (helpOn) h += '<div class="helpbox">' + HELP.map(function (x) { return '<p><b>' + x[0] + '</b> ' + x[1] + '</p>'; }).join('') + '</div>';
+    var h = '<div id="setBox"><div class="top"><h2>설정</h2><span class="tb"><button type="button" id="setClose2">닫기</button></span></div>';
     h += swRow('약속', 'dine', on(o, 'dine'));
     // 선호 근무시간: 스위치를 켜면 순위 칸이 열림
     var pf = o.pref || {}, pe = (pf.ex || [9, 10, 7]), pn = (pf.no || [10, 11, 8]), exOnS = on(o, 'ex'), pOpen = !!o.prefOpen;
-    h += '<div class="it"><div class="t"><b>선호 근무시간</b></div><button type="button" class="sw' + (pOpen ? ' on' : '') + '" id="prefSw" aria-label="선호 근무시간 설정 열기"></button></div>';
+    h += '<div class="it"><div class="t"><b>선호 근무시간</b>' + hq('선호 근무시간') + '</div><button type="button" class="sw' + (pOpen ? ' on' : '') + '" id="prefSw" aria-label="선호 근무시간 설정 열기"></button></div>';
     function opts(sel, lo, hi, none) { var s = none ? '<option value="">없음</option>' : ''; for (var v = lo; v <= hi; v++) s += '<option value="' + v + '"' + (+sel === v ? ' selected' : '') + '>' + v + '시간</option>'; return s; }
     var head = '<div class="pr hd"><span></span><em class="r1">1순위<i>가장 선호</i></em><em class="r2">2순위<i>다음 선호</i></em><em class="r3">3순위<i>그다음 선호</i></em></div>';
     var rowNo = function (label) { return '<div class="pr"><span>' + label + '</span><select class="r1" data-p="no0">' + opts(pn[0], 5, 13, false) + '</select><select class="r2" data-p="no1">' + opts(pn[1], 5, 13, true) + '</select><select class="r3" data-p="no2">' + opts(pn[2], 5, 13, true) + '</select></div>'; };
@@ -235,11 +243,11 @@
     h += swRow('운동', 'ex', exOnS);
     if (exOnS) {
       var exNv = Math.min(12, Math.max(1, parseInt(o.exN, 10) || 7)), eo = ''; for (var q = 1; q <= 12; q++) eo += '<option value="' + q + '"' + (q === exNv ? ' selected' : '') + '>' + q + '번</option>';
-      h += '<div class="it"><div class="t"><b>운동 목표 횟수</b></div><select class="exn" id="exNsel">' + eo + '</select></div>';
+      h += '<div class="it"><div class="t"><b>운동 목표 횟수</b>' + hq('운동 목표 횟수') + '</div><select class="exn" id="exNsel">' + eo + '</select></div>';
     }
-    h += '<div class="it"><div class="t"><b>지난 기록 지우기</b></div><button type="button" class="mini" id="purgeOpen"' + (pastMonths().length ? '' : ' disabled') + '>' + (pastMonths().length ? '달 선택' : '없음') + '</button></div>' +
-      '<div class="it"><div class="t"><b>앱 업데이트</b><small class="m" id="updMsg">현재 ' + curVer() + '</small></div><button type="button" class="mini" id="updBtn">확인</button></div>' +
-      '<div class="it"><div class="t"><b>관리자</b></div><button type="button" class="mini" id="admBtn">페이지 열기</button></div>' +
+    h += '<div class="it"><div class="t"><b>지난 기록 지우기</b>' + hq('지난 기록 지우기') + '</div><button type="button" class="mini" id="purgeOpen"' + (pastMonths().length ? '' : ' disabled') + '>' + (pastMonths().length ? '달 선택' : '지울 달 없음') + '</button></div>' +
+      '<div class="it"><div class="t"><b>앱 업데이트</b>' + hq('앱 업데이트') + '<small class="m" id="updMsg">현재 ' + curVer() + '</small></div><button type="button" class="mini" id="updBtn">확인</button></div>' +
+      '<div class="it"><div class="t"><b>관리자</b>' + hq('관리자') + '</div><button type="button" class="mini" id="admBtn">페이지 열기</button></div>' +
       '<button type="button" class="close" id="setClose">닫기</button></div>';
     back.innerHTML = h;
     var bx1 = document.getElementById('setBox'); if (bx1) bx1.scrollTop = prevTop;
@@ -247,7 +255,7 @@
     if (exs) exs.addEventListener('change', function () { var cur = read(), v = +exs.value; if (v === 7) delete cur.exN; else cur.exN = v; write(cur); applyNow(); });
     document.getElementById('setClose').addEventListener('click', close);
     document.getElementById('setClose2').addEventListener('click', close);   // 맨 위 닫기(스크롤해도 위에 붙어 있음)
-    document.getElementById('setHelp').addEventListener('click', function () { helpOn = !helpOn; build(); });
+    Array.prototype.forEach.call(back.querySelectorAll('.hq'), function (b) { b.addEventListener('click', function () { showHelp(b.getAttribute('data-hq')); }); });
     document.getElementById('updBtn').addEventListener('click', checkUpdate);
     document.getElementById('purgeOpen').addEventListener('click', openPurge);
     Array.prototype.forEach.call(back.querySelectorAll('.pref select'), function (sl) {

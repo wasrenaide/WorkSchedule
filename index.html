@@ -138,6 +138,8 @@ body.lowminb{--bg:#ffefd9}
 .fillcard b{font-size:16px}.fillcard span{font-size:12px;color:var(--muted);line-height:1.5}
 .fillcard button{margin-top:6px;font:inherit;font-size:15px;font-weight:700;padding:11px 22px;border-radius:999px;border:0;background:var(--accent);color:var(--on-accent)}
 #cal.fillneed{opacity:.2;pointer-events:none}
+#cal.fillneed .tm,#cal.fillneed .ex,#cal.fillneed .nex{visibility:hidden}
+#cal.fillneed .cell .main{background:none;color:transparent}   /* 기록 없는 달·설정 전 달: 근무시간·운동 칸을 모두 비움(날짜만 보임) */
 .fillneedb .sum{opacity:.3}
 .wkbar{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
 .wkbar small{color:var(--muted);font-size:12px;line-height:1.45}
@@ -321,7 +323,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.8.0</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.8.1</small>
     <p class="note"><b>모드</b> 아래의 <b>계획 / 실행 / 계산</b> 버튼을 누르면 바로 그 모드로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -339,7 +341,7 @@ h1{font-size:17px}
     · <b>패밀리데이</b>(21일이 속한 주 금요일): 선택창에서 휴가(연차)로 처리할지 일반 근무일로 둘지 골라요. 고른 값은 기억해요.<br>
     · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말 근무·휴가(연차)·약속·일정(지정한 시간)을 넣어 뒀다면 <b>초기화해도 유지할 것</b>을 체크해서 골라요(기본은 모두 유지, 체크를 끄면 같이 지워져요). <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
     <b>실행</b> 오늘까지의 실제 기록<br>
-    · 지난 날과 오늘은 눌러서 시·분을 고쳐요. 운동 칸을 누르면 초록으로 반짝이는 ‘운동✓’로 바뀌어요(기록 없는 날도 가능). 오늘은 시간을 쓰기 전에도 운동 칸을 누를 수 있어요.<br>
+    · 지난 날과 오늘은 눌러서 시·분을 고쳐요. 운동 칸을 누르면 초록으로 반짝이는 ‘운동✓’로 바뀌어요(기록 없는 날도 가능). 실행 모드에서는 운동✓로만 바뀌고, 운동을 빼려면 계획 모드에서 그 칸을 눌러요. 오늘은 시간을 쓰기 전에도 운동 칸을 누를 수 있어요.<br>
     · 요약에 예상 합계와 차이가 나와요. 올림/내림은 쓰지 않아요.<br><br>
     <b>계산</b> 오늘 퇴근 시각 계산<br>
     · 출근·퇴근 시각을 누르면 돌림판이 열려요. 체류 4:30 이상 30분, 9:00 이상 1시간이 자동으로 빠지고, 제외시간은 그 위에 더 빼요. 제외시간은 10분 단위 버튼 외에 <b>직접 입력</b>으로 시·분을 골라요.<br>
@@ -353,7 +355,7 @@ h1{font-size:17px}
     <b>아래 버튼</b><br>
     · <b>↶ 되돌리기</b>: 바꾼 것을 한 단계씩 되돌려요(최근 300번, 앱을 닫아도 남아요) 서버에 저장하면 되돌리기 기록은 비워져요. 되돌려서 마지막 저장 상태와 같아지면 ‘저장 안 된 변경’ 알림도 사라져요.<br>
     · <b>☁ 서버 저장/불러오기</b>: 이름과 PIN으로 가입·로그인해서 서버에 저장하고, 다른 폰에서 불러와요. 저장 안 한 변경이 있으면 위쪽 글씨·버튼·아래 카드가 주황색으로 알려줘요. 서버에 더 새 데이터가 있으면 저장이 막히고 고르는 창이 떠요. 관리자는 문제 해결을 위해 저장된 데이터를 볼 수 있어요.<br>
-    · <b>⚙ 설정</b>: 약속·선호 근무시간·운동(목표 횟수)·지난 기록 지우기·앱 업데이트·관리자. 항목 설명은 설정 위쪽 <b>?</b> 버튼을 눌러 봐요. 바꾸면 바로 적용돼요.<br>
+    · <b>⚙ 설정</b>: 약속·선호 근무시간·운동(목표 횟수)·지난 기록 지우기·앱 업데이트·관리자. 항목 이름 옆 <b>?</b>를 누르면 그 항목 설명이 떠요(아무 데나 누르면 닫혀요). 바꾸면 바로 적용돼요.<br>
     · 자동·라이트·다크: 화면 색이에요. 이 폰에만 저장돼요.<br><br>
     <b>선호 근무시간</b> (⚙ 설정)<br>
     · 설정에서 <b>선호 근무시간</b> 스위치를 켜면 순위 칸이 열려요(접어 둬도 값은 적용돼요).<br>
@@ -732,7 +734,7 @@ h1{font-size:17px}
         if(d.id<=todayId&&(m>0||c.ax[d.id]===true)&&runEx(d.id)===true)exN++;
       });
       warnEx=exOn()&&exN<EX_NEED;
-      var projected=act+planLeft,diff=projected-(minB?mi0.h:cap)*60,sg=diff>0?'+':diff<0?'−':'±';
+      var projected=act+planLeft,diff=projected-(minB?mi0.h:cap)*60,sg=diff<0?'−':'+';
       $('stats').innerHTML=
         '<div><dt>예상</dt><dd>'+fmtHM(projected)+'</dd></div>'+
         '<div'+(minB?(diff<0?' class="over"':diff>0?' class="under"':''):(diff>0?' class="over"':(FILLUI&&diff<0?' class="under"':'')))+'><dt>'+(minB?'최소 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
@@ -753,10 +755,10 @@ h1{font-size:17px}
       var t2=r.total,mismatch=!r.error&&t2!==cap;
       // 합계: 지난 날은 실행 모드에서 고친 실제 기록, 오늘·앞으로는 계획 시간
       ds.forEach(function(d){var rw=r.rows[d.id],pa=actMin(d);tm+=pa>0?pa:(rw?rw.h*60:0)});
-      var pdiff=tm-(minB?mi0.h:cap)*60,psg=pdiff>0?'+':pdiff<0?'−':'±';
+      var pdiff=tm-(minB?mi0.h:cap)*60,psg=pdiff<0?'−':'+';
       $('stats').innerHTML=
         '<div><dt>합계</dt><dd>'+fmtD(tm)+'</dd></div>'+
-        '<div'+(minB?(pdiff<0?' class="over"':pdiff>0?' class="under"':''):(pdiff>0?' class="over"':pdiff<0?' class="under"':''))+'><dt>'+(minB?'최소 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+psg+fmtD(Math.abs(pdiff))+'</dd></div>'+
+        '<div'+(minB?(pdiff<0?' class="over"':pdiff>0?' class="under"':''):(pdiff>0?' class="over"':pdiff<0?' class="under"':''))+'><dt>'+(minB?'최소 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+psg+(pdiff===0?'0.0':fmtD(Math.abs(pdiff)))+'</dd></div>'+
         (exOn()?'<div'+(warnEx?' class="bad"':'')+'><dt>운동</dt><dd>'+exShown+'/'+EX_NEED+'</dd></div>':'');
       // 빨간 글자의 숫자는 위쪽 요약(합계·차이)과 같은 값(tm: 지난 날 실제 기록 반영)으로 계산
       if(r.error&&r.error.indexOf('연속')>=0)msg=r.error;
@@ -784,11 +786,11 @@ h1{font-size:17px}
         if(!minB){   // 최대 기준: 최대 대비 ±시간. 최대를 넘으면(+) 빨강, 모자라면(−) 초록. 최소 미달은 주황 배경으로 알려줌
           if(over60>0){msg='최대 대비 +'+fmtHM(over60)+' (최대를 넘었어요)';okMsg=false}
           else if(over60<0){msg='최대 대비 −'+fmtHM(-over60);okMsg=true}
-          else msg=''
+          else{msg='최대 대비 +0:00';okMsg=true}   // 딱 맞아도 줄이 없어지지 않게(화면이 위아래로 움직이지 않게)
         }
         else if(over60>0){msg='최대보다 '+fmtHM(over60)+' 많아요.';okMsg=false}
         else if(lowMin){msg='최소보다 '+fmtHM(mi0.h*60-tot60)+' 모자라요.';okMsg=false}
-        else{var dm=tot60-mi0.h*60;msg=dm>0?'최소보다 '+fmtHM(dm)+' 더 했어요.':'';okMsg=true}
+        else{var dm=tot60-mi0.h*60;msg=dm>0?'최소보다 '+fmtHM(dm)+' 더 했어요.':'최소 대비 +0:00';okMsg=true}
       }
     }
     document.querySelector('.sum').classList.toggle('run',runMode);
@@ -820,21 +822,21 @@ h1{font-size:17px}
         if(pa>0){
           mcls+=' hrs';style=' style="--h:'+hue(pa/60)+'"';
           inner=dn+splitHtml(pa);
-          if(slotOk(d)&&m!=='edu')exbtn=exBtn(exState(runEx(d.id),false),d.id,true,true);
+          if(slotOk(d)&&m!=='edu')exbtn=exBtn(exState(runEx(d.id),false),d.id,!FILLUI,true);
         }else if(x){
           mcls+=' hrs';style=' style="--h:'+hue(x.h)+'"';
           inner=dn+splitHtml(x.h*60);
           if(slotOk(d)&&!x.edu){
             var todayRun=runMode&&d.id===todayId;   // 실행 모드의 오늘: 시간 기록 전에도 운동 여부를 입력할 수 있음
             var axT=d.id<=todayId&&c.ax[d.id]!==undefined;   // 실행 모드에서 직접 입력한 운동 여부(오늘까지): 계획 모드에서도 그대로 보임
-            exbtn=exBtn(axT?exState(c.ax[d.id],false):exState(c.x[d.id],x.ex),d.id,(runMode&&!todayRun)||(!runMode&&axT),(!runMode&&d.id<todayId)||(axT&&c.ax[d.id]===true));   // 계획 모드의 지난 날짜: 운동함이면 기록 시간이 없어도 반짝임
+            exbtn=exBtn(axT?exState(c.ax[d.id],false):exState(c.x[d.id],x.ex),d.id,(runMode&&!todayRun),(!runMode&&d.id<todayId)||(axT&&c.ax[d.id]===true));   // 계획 모드의 지난 날짜: 운동함이면 기록 시간이 없어도 반짝임
           }
         }else if(!d.we&&r.error&&!HOL[d.id]&&m!=='off'&&m!=='leave'){cls+=' rest';inner=dn+'?'}
         else{cls+=' rest';if(kind)mcls+=' '+kind+'bg';inner=dn+restText}
       }
       var snT=c.sc&&typeof c.sc[d.id]==='string'?c.sc[d.id]:'';
       if(snT&&/^[0-9]+(:[0-9]{2})?$/.test(m||'')&&inner.indexOf('class="tm"')>=0)exbtn='<button type="button" class="ex sn" data-s="sn"'+(ro()?' disabled':' data-sn="'+d.id+'"')+'>'+snT.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</button>';   // 개인 일정: 운동·약속 칸 자리에 글자로 표시
-      if(FILLUI&&!exbtn&&(past||isToday)&&exOn()&&exOk(d)&&m!=='leave'&&m!=='edu'&&(runMode||c.ax[d.id]===true))exbtn=exBtn(exState(runEx(d.id),false),d.id,!runMode,true);   // 실행 모드: 근무 기록이 없는 날(토요일·휴무 등)도 운동을 체크할 수 있음
+      if(FILLUI&&!exbtn&&(past||isToday)&&exOn()&&exOk(d)&&m!=='leave'&&m!=='edu'&&(runMode||c.ax[d.id]===true))exbtn=exBtn(exState(runEx(d.id),false),d.id,false,true);   // 실행 모드: 근무 기록이 없는 날(토요일·휴무 등)도 운동을 체크할 수 있음
       if(past)cls+=' past';
       if(!exbtn)exbtn=(holSat&&inner.indexOf('class="tm"')>=0)?'<span class="nex hol">휴일</span>':'<span class="nex"></span>';   // 휴일인 토요일에 근무 시간이 있으면 운동 칸 자리에만 빨강 바탕
       h+='<div class="'+cls+'"><button type="button" class="'+mcls+'"'+style+' data-id="'+d.id+'" aria-label="'+(vm+1)+'월 '+d.n+'일">'+inner+'</button>'+exbtn+'</div>';
@@ -864,8 +866,17 @@ h1{font-size:17px}
       if(dineOn()&&!we2)lst.push('dine');
       lst.push('off');
       var li=lst.indexOf(st),tg=li<0?'off':lst[(li+(dirDown?-1:1)+lst.length)%lst.length];
-      if(runMode){c.ax[xid]=(tg==='on')?true:(tg==='dine'?'dine':false)}   // 운동안함도 직접 선택한 값으로 저장(계획 기본값이 다시 덮지 않게)
+      if(runMode){
+        if(FILLUI&&exOn()){   // 앱: 실행 모드에서는 운동 → 운동 완료로만 바뀜(빼는 건 계획 모드에서)
+          if(c.ax[xid]===true){setHint('운동을 빼려면 계획 모드에서 눌러요.');return}
+          c.ax[xid]=true;
+        }else c.ax[xid]=(tg==='on')?true:(tg==='dine'?'dine':false);   // 운동안함도 직접 선택한 값으로 저장(계획 기본값이 다시 덮지 않게)
+      }
       else{
+        if(FILLUI&&xid<=idOf(new Date())){   // 오늘·지난 날의 운동 완료 표시를 계획 모드에서 누르면 운동을 뺌
+          if(st==='on'&&exOn()){tg='off'}
+          delete c.ax[xid];
+        }
         // 처음 운동을 만지면 지금의 자동 배정 7일을 그대로 '내 선택'으로 굳히고, 그 뒤로는 자동으로 더하거나 옮기지 않음
         lockBefore(xid);
         if(tg==='dine'){c.x[xid]='dine';c.d[xid]='8';delete c.lk[xid]}                     // 회식: 근무시간 8로 고정
