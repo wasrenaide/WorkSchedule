@@ -290,7 +290,9 @@ h1{font-size:17px}
 .hint{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;margin:0;padding:9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.25);font-size:13px;color:var(--fg)}
 .hint[hidden]{display:none}
 .err[hidden]{display:block;visibility:hidden}
-.err{min-height:18px}</style>
+.err{min-height:18px}
+.sum .stats{flex:0 0 100%}
+.sum .cap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 0;text-align:right}   /* 필수/최대 안내는 한 줄로 고정(보는 기준 오른쪽): 줄이 늘어 칸 크기가 바뀌지 않게 */</style>
 </head>
 <body>
 <main class="app">
@@ -335,7 +337,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.9.2</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.9.3</small>
     <p class="note"><b>모드</b> 아래의 <b>계획 / 실행 / 계산</b> 버튼을 누르면 바로 그 모드로 바뀌어요. 달력은 항상 6줄로 보여서(5줄인 달은 아래가 비어요) 달을 넘겨도 아래 메뉴 위치가 그대로예요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -348,7 +350,7 @@ h1{font-size:17px}
     · 주말 근무를 유지하고 초기화하면, 평일 운동은 (목표 − 유지한 토요일 운동)번만 짜요.<br><br>
     <b>새 달 시작</b><br>
     · 처음 여는 달은 달력이 흐려지고 <b>이 달 설정하기</b>가 떠요. 둘 중 하나를 골라요.<br>
-    · <b>최소로 시작</b>: 평일 8시간. 다른 날을 바꿔도 나머지는 그대로예요.<br>
+    · <b>필수로 시작</b>: 평일 8시간. 다른 날을 바꿔도 나머지는 그대로예요.<br>
     · <b>최대로 채우기</b>: 월 최대 시간에 맞춰 자동으로 나눠요. 하루 길이는 근무시간 + 운동 1시간으로 보고, 긴 날을 월초에 모아요.<br>
     · <b>패밀리데이</b>(21일이 속한 주 금요일): 선택창에서 휴가(연차)로 처리할지 일반 근무일로 둘지 골라요. 고른 값은 기억해요.<br>
     · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말 근무·휴가(연차)·약속·일정(지정한 시간)을 넣어 뒀다면 <b>초기화해도 유지할 것</b>을 체크해서 골라요(기본은 모두 유지, 체크를 끄면 같이 지워져요). <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
@@ -359,14 +361,14 @@ h1{font-size:17px}
     · 출근·퇴근 시각을 누르면 돌림판이 열려요. 체류 4:30 이상 30분, 9:00 이상 1시간이 자동으로 빠지고, 제외시간은 그 위에 더 빼요. 제외시간은 <b>−10분 / +10분</b> 버튼으로 10분씩 바꾸고, 가운데 <b>직접 입력</b>을 누르면 시·분을 골라요(직접 입력한 값에서도 10분씩 바뀌어요).<br>
     · <b>출근 초기화</b>는 출근을 08:00으로, <b>퇴근 초기화</b>는 오늘 계획에 맞는 퇴근 시각으로 되돌려요.<br><br>
     <b>위쪽 요약</b><br>
-    · <b>보는 기준 [최대 | 최소]</b>: 합계를 어느 쪽과 비교할지 골라요.<br>
+    · <b>보는 기준 [최대 | 필수]</b>: 합계를 어느 쪽과 비교할지 골라요.<br>
     · 최대: 주 52시간제 208·215·222·230시간, 64시간제 256·265·274·283시간(28·29·30·31일, 29일은 임시값).<br>
-    · 최소(월 필수 근무시간): 휴가가 없으면 관리자가 정한 시간이에요. 정한 값이 없으면 min(근무일×8, 40/7×그 달 일수)로 자동 계산해요. <b>휴가를 하루라도 쓰면 (근무일 − 휴가일수)×8시간</b>으로 바뀌어요. <b>시간연차</b>는 쓴 시간(1~7)만큼 더 줄고, 교육은 필수 시간을 바꾸지 않아요. <b>패밀리데이</b>에 휴가를 넣을 때는 ‘패밀리데이 휴가’(필수 시간 그대로)인지 ‘일반 휴가’(필수 시간 줄어듦)인지 골라요.<br>· 최소 기준에서는 <b>평일(공휴일 제외) 근무만</b> 필수 시간과 비교하고, 주말·공휴일 근무는 <b>추가근무</b>로 따로 보여줘요.<br>
-    · 합계가 최소보다 적으면 화면 전체가 주황색으로 바뀌어요(이번 달 이후).<br>
+    · 필수 근무시간(월): 휴가가 없으면 관리자가 정한 시간이에요. 정한 값이 없으면 min(근무일×8, 40/7×그 달 일수)로 자동 계산해요. <b>휴가를 하루라도 쓰면 (근무일 − 휴가일수)×8시간</b>으로 바뀌어요. <b>시간연차</b>는 쓴 시간(1~7)만큼 더 줄고, 교육은 필수 시간을 바꾸지 않아요. <b>패밀리데이</b>에 휴가를 넣을 때는 ‘패밀리데이 휴가’(필수 시간 그대로)인지 ‘일반 휴가’(필수 시간 줄어듦)인지 골라요.<br>· 필수 기준에서는 <b>평일(공휴일 제외) 근무만</b> 필수 시간과 비교하고, 주말·공휴일 근무는 <b>추가근무</b>로 따로 보여줘요.<br>
+    · 합계가 필수 시간보다 적으면 화면 전체가 주황색으로 바뀌어요(이번 달 이후).<br>
     · 제목 옆 52h/64h는 한 번 더 눌러야 바뀌어요. 바꿔도 칸의 값은 그대로이고, 최대 옆 <b>맞추기</b>를 누르면 새 최대에 맞춰요.<br><br>
     <b>아래 버튼</b><br>
     · <b>↶ 되돌리기</b>: 바꾼 것을 한 단계씩 되돌려요(최근 300번, 앱을 닫아도 남아요) 서버에 저장하면 되돌리기 기록은 비워져요. 되돌려서 마지막 저장 상태와 같아지면 ‘저장 안 된 변경’ 알림도 사라져요.<br>
-    · <b>☁ 서버 저장/불러오기</b>: 이름과 PIN으로 가입·로그인해서 서버에 저장하고, 다른 폰에서 불러와요. 저장 안 한 변경이 있으면 달력 맨 아래 오른쪽 빈 칸에 ‘저장 안 된 변경’ 카드(되돌리기·저장)가 뜨고, 위쪽 글씨·아래 버튼도 주황색으로 알려줘요. 서버에 더 새 데이터가 있으면 저장이 막히고 고르는 창이 떠요. 관리자는 문제 해결을 위해 저장된 데이터를 볼 수 있어요.<br>
+    · <b>☁ 서버 저장/불러오기</b>: 이름과 PIN으로 가입·로그인해서 서버에 저장하고, 다른 폰에서 불러와요. 저장 안 한 변경이 있으면 달력 맨 아래 오른쪽 빈 칸(목·금·토)에 ‘저장 안 된 변경’ 카드(되돌리기·저장)가 뜨고, 위쪽 글씨·아래 버튼도 주황색으로 알려줘요. 서버에 더 새 데이터가 있으면 저장이 막히고 고르는 창이 떠요. 관리자는 문제 해결을 위해 저장된 데이터를 볼 수 있어요.<br>
     · <b>⚙ 설정</b>: 약속·선호 근무시간·운동(목표 횟수)·지난 기록 지우기·앱 업데이트·관리자. 항목 이름 옆 <b>?</b>를 누르면 그 항목 설명이 떠요(아무 데나 누르면 닫혀요). 바꾸면 바로 적용돼요.<br>
     · 자동·라이트·다크: 화면 색이에요. 이 폰에만 저장돼요.<br><br>
     <b>선호 근무시간</b> (⚙ 설정)<br>
@@ -695,7 +697,7 @@ h1{font-size:17px}
   function FILLUI_EARLY(){return window.__fillUI===true}
   // 앱: 달력은 항상 6줄. 화면 높이에서 달력 밖 영역(위·아래 메뉴)을 뺀 만큼을 6줄로 나눠 칸 높이를 정함 → 달이 달라도 아래 메뉴 위치가 고정되고 맨 아래 설정까지 한 화면에 들어옴
   var fitBusy=false;
-  // 저장 안 된 변경 알림: 달력 마지막(6번째) 줄 오른쪽 5칸은 어떤 달이어도 비어 있으니(1일이 토요일이고 31일이어도 37칸까지만 씀) 그 자리에 올려서 칸 크기가 안 바뀌게 함
+  // 저장 안 된 변경 알림: 달력 마지막(6번째) 줄 오른쪽 3칸(목·금·토)은 어떤 달이어도 비어 있으니(1일이 토요일이고 31일이어도 37칸까지만 씀) 그 자리에 올려서 칸 크기가 안 바뀌게 함
   function placeBar(){
     var bar=$('cloudBar'),cal=$('cal');if(!bar||!FILLUI||!cal)return;
     var host=document.querySelector('.card.calc');
@@ -703,8 +705,8 @@ h1{font-size:17px}
     bar.style.position='absolute';bar.style.margin='0';
     if(calcMode||cal.hidden||!cal.offsetHeight){bar.style.visibility='hidden';return}
     var gap=parseFloat(getComputedStyle(cal).columnGap)||2,cw=(cal.clientWidth-6*gap)/7,chv=(cal.offsetHeight-5*gap)/6;
-    bar.style.left=(cal.offsetLeft+2*(cw+gap))+'px';bar.style.top=(cal.offsetTop+5*(chv+gap))+'px';
-    bar.style.width=(5*cw+4*gap)+'px';bar.style.height=chv+'px';bar.style.visibility='visible';
+    bar.style.left=(cal.offsetLeft+4*(cw+gap))+'px';bar.style.top=(cal.offsetTop+5*(chv+gap))+'px';   // 마지막 줄 오른쪽 3칸(목·금·토)
+    bar.style.width=(3*cw+2*gap)+'px';bar.style.height=chv+'px';bar.style.visibility='visible';
   }
   function fitCells(){fitCells0();placeBar()}
   // 키보드가 올라와 화면 높이가 줄었을 때는 칸 높이를 다시 계산하지 않음(글자 입력 뒤 달력이 작아진 채로 남는 것 방지). 키보드가 내려가면 다시 맞춤
@@ -812,14 +814,14 @@ h1{font-size:17px}
       var projected=act+planLeft,cmpP=minB?projected-extR:projected,diff=cmpP-(minB?mi0.h:cap)*60,sg=diff<0?'−':'+';
       $('stats').innerHTML=
         '<div><dt>'+(minB?'평일 예상':'예상')+'</dt><dd>'+fmtHM(cmpP)+'</dd></div>'+
-        '<div'+(minB?(diff<0?' class="over"':diff>0?' class="under"':''):(diff>0?' class="over"':(FILLUI&&diff<0?' class="under"':'')))+'><dt>'+(minB?'최소 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
+        '<div'+(minB?(diff<0?' class="over"':diff>0?' class="under"':''):(diff>0?' class="over"':(FILLUI&&diff<0?' class="under"':'')))+'><dt>'+(minB?'필수 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
         (exOn()?'<div class="'+(exN<EX_NEED?'bad':'done')+'"><dt>운동</dt><dd>'+exN+'/'+EX_NEED+(exN>=EX_NEED?' ✓':'')+'</dd></div>':'')+
         (minB?'<div><dt>추가근무</dt><dd>'+fmtHM(extR)+'</dd></div>':'');
       // 계획 모드와 같은 안내: 넘치면 빨강, 모자라면 초록(더 근무 가능)
       if(diff>0)msg='최대보다 '+fmtHM(diff)+' 많아요.';
       else if(diff<0){msg=fmtHM(-diff)+' 더 근무할 수 있어요.';okMsg=true}
     }else{
-      $('cap').innerHTML=minB?('최소 <b>'+hmTxt(mi0.h)+'</b> <small>('+(mi0.leave?'남은 근무일×8시간':mi0.adm?'관리자 설정':mi0.capped?'40/7 기준 자동':'근무일×8시간 자동')+(mi0.leave?' · 휴가 '+mi0.leave+'일':'')+(mi0.hl?' · 시간연차 '+mi0.hl+'시간':'')+')</small>'):('최대 <b>'+cap+'시간</b> <small>(주 '+LIM+'시간제)</small>'+(limPend&&!ro()?' <button type="button" class="todaybtn" id="fitBtn">맞추기</button>':'')+(ds.length===29?' <small>(임시값)</small>':''));
+      $('cap').innerHTML=minB?('필수 <b>'+hmTxt(mi0.h)+'</b> <small>('+(mi0.leave||mi0.hl?[mi0.leave?'휴가 '+mi0.leave+'일':'',mi0.hl?'시간연차 '+mi0.hl+'h':''].filter(Boolean).join('·'):mi0.adm?'관리자 설정':mi0.capped?'40/7 기준':'자동')+')</small>'):('최대 <b>'+cap+'시간</b> <small>(주 '+LIM+'시간제)</small>'+(limPend&&!ro()?' <button type="button" class="todaybtn" id="fitBtn">맞추기</button>':'')+(ds.length===29?' <small>(임시값)</small>':''));
       // 화면에 보이는 운동 칸과 같은 기준으로 센다: 지난 날(실제 기록 있음)은 실제 운동, 그 외는 계획의 운동
       var exShown=0;
       ds.forEach(function(d){
@@ -834,7 +836,7 @@ h1{font-size:17px}
       var cmpT=minB?tm-extP:tm,pdiff=cmpT-(minB?mi0.h:cap)*60,psg=pdiff<0?'−':'+';
       $('stats').innerHTML=
         '<div><dt>'+(minB?'평일 합계':'합계')+'</dt><dd>'+fmtD(cmpT)+'</dd></div>'+
-        '<div'+(minB?(pdiff<0?' class="over"':pdiff>0?' class="under"':''):(pdiff>0?' class="over"':pdiff<0?' class="under"':''))+'><dt>'+(minB?'최소 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+psg+(pdiff===0?'0.0':fmtD(Math.abs(pdiff)))+'</dd></div>'+
+        '<div'+(minB?(pdiff<0?' class="over"':pdiff>0?' class="under"':''):(pdiff>0?' class="over"':pdiff<0?' class="under"':''))+'><dt>'+(minB?'필수 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+psg+(pdiff===0?'0.0':fmtD(Math.abs(pdiff)))+'</dd></div>'+
         (exOn()?'<div'+(warnEx?' class="bad"':'')+'><dt>운동</dt><dd>'+exShown+'/'+EX_NEED+'</dd></div>':'')+
         (minB?'<div><dt>추가근무</dt><dd>'+fmtD(extP)+'</dd></div>':'');
       // 빨간 글자의 숫자는 위쪽 요약(합계·차이)과 같은 값(tm: 지난 날 실제 기록 반영)으로 계산
@@ -866,8 +868,8 @@ h1{font-size:17px}
           else{msg='최대 대비 +0:00';okMsg=true}   // 딱 맞아도 줄이 없어지지 않게(화면이 위아래로 움직이지 않게)
         }
         else if(over60>0){msg='최대보다 '+fmtHM(over60)+' 많아요.';okMsg=false}
-        else if(lowMin){msg='최소보다 '+fmtHM(mi0.h*60-tot60W)+' 모자라요.';okMsg=false}
-        else{var dm=tot60W-mi0.h*60;msg=dm>0?'최소보다 '+fmtHM(dm)+' 더 했어요.':'최소 대비 +0:00';okMsg=true}
+        else if(lowMin){msg='필수보다 '+fmtHM(mi0.h*60-tot60W)+' 모자라요.';okMsg=false}
+        else{var dm=tot60W-mi0.h*60;msg=dm>0?'필수보다 '+fmtHM(dm)+' 더 했어요.':'필수 대비 +0:00';okMsg=true}
       }
     }
     document.querySelector('.sum').classList.toggle('run',runMode);
@@ -1422,7 +1424,7 @@ h1{font-size:17px}
     var el=$('basisTog');
     if(!el){
       el=document.createElement('div');el.id='basisTog';el.className='basis';
-      el.innerHTML='<span>보는 기준</span><button type="button" data-b="max">최대</button><button type="button" data-b="min">최소</button>';
+      el.innerHTML='<span>보는 기준</span><button type="button" data-b="max">최대</button><button type="button" data-b="min">필수</button>';
       var sm=document.querySelector('.sum');sm.insertBefore(el,sm.firstChild);
       el.addEventListener('click',function(e){var b=e.target.closest('button[data-b]');if(b)setBasis(b.getAttribute('data-b'))});
     }
@@ -1542,7 +1544,7 @@ h1{font-size:17px}
         (hlD.length?keepRow('hl','시간연차 '+hlD.length+'건',hlD.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일 '+c0hl(id)+'시간'}).join(', ')):'')+
         (sc.length?keepRow('sc','일정 '+sc.length+'일 (지정한 시간)',sc.map(function(id){var dd=new Date(id+'T00:00:00');return dd.getDate()+'일('+'일월화수목금토'[dd.getDay()]+') '+c0d(id)+'시간'}).join(', ')):'')+'</div>':'')+
       (FILLUI?'<div class="keepbar"><b>패밀리데이</b><small>'+(+fdId().slice(8))+'일(금)을 어떻게 할까요?</small><button type="button" class="keeprow" data-k="fd" aria-pressed="'+fdLeaveGet()+'"><span class="ck">'+(fdLeaveGet()?'✓':'')+'</span><span class="kt"><b>패밀리데이 휴가로 처리</b><small>켜면 휴가로 쉬되 월 필수 근무시간은 그대로예요. 끄면 일반 근무일이에요</small></span></button></div>':'')+
-      '<button type="button" class="fopt" data-m="min"><b>최소로 시작</b><small>평일 8시간으로 채워요(주 40시간 기준). 다른 날을 고쳐도 나머지 숫자는 자동으로 안 바뀌어요.</small></button>'+
+      '<button type="button" class="fopt" data-m="min"><b>필수로 시작</b><small>평일 8시간으로 채워요(주 40시간 기준). 다른 날을 고쳐도 나머지 숫자는 자동으로 안 바뀌어요.</small></button>'+
       '<button type="button" class="fopt" data-m="max"><b>최대로 채우기</b><small>월 최대 '+cap+'시간에 맞춰 자동으로 나눠요. 한 날을 고치면 뒤쪽 날짜가 다시 맞춰져요.</small></button>'+
       (reset?'<button type="button" class="fopt fall" data-m="all"><b>이 달 전부 지우기</b><small>지난 날 기록까지 이 달의 모든 입력을 지우고, 설정 전 상태로 돌아가요. ↶ 되돌리기로 한 단계 되돌릴 수 있어요.</small></button>':'')+
       '<button type="button" class="ghost" id="fillCancel">'+(reset?'취소':'나중에')+'</button></div>';

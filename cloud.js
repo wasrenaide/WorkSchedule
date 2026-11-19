@@ -65,13 +65,13 @@
     '#sync.cdirty{color:#e65100!important;font-weight:700!important}' +
     '#cloudOpen.dirty{background:#fff3e0;border-color:#ef6c00;color:#e65100;font-weight:700}' +
     '@media (prefers-color-scheme:dark){#cloudOpen.dirty{background:#3a2610;color:#ffb74d;border-color:#ef6c00}#sync.cdirty{color:#ffb74d!important}}' +
-    '#cloudBar{display:none;position:absolute;z-index:6;box-sizing:border-box;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:4px 6px;background:var(--surface);color:var(--fg);border:1.5px solid #f59e0b;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.18);font-size:12px}' +
-    '#cloudBar .t{display:flex;align-items:center;gap:6px;font-weight:700;color:#b45309;min-width:0;white-space:nowrap}' +
+    '#cloudBar{display:none;position:absolute;z-index:6;box-sizing:border-box;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:3px 4px;background:var(--surface);color:var(--fg);border:1.5px solid #f59e0b;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.18);font-size:12px}' +
+    '#cloudBar .t{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#b45309;min-width:0;white-space:nowrap}' +
     '#cloudBar .t i{flex:none;width:8px;height:8px;border-radius:50%;background:#f59e0b}' +
-    '#cloudBar .b{display:flex;align-items:center;gap:6px;flex:none}' +
-    '#cloudBar button{font:inherit;font-size:13px;border:0;cursor:pointer}' +
-    '#cloudBar .u{background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:5px 12px;border-radius:999px}' +
-    '#cloudBar .s{background:#f59e0b;color:#fff;font-weight:700;padding:5px 18px;border-radius:999px}' +
+    '#cloudBar .b{display:flex;align-items:center;gap:5px;flex:none}' +
+    '#cloudBar button{font:inherit;font-size:12px;border:0;cursor:pointer}' +
+    '#cloudBar .u{background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:5px 9px;border-radius:999px}' +
+    '#cloudBar .s{background:#f59e0b;color:#fff;font-weight:700;padding:5px 14px;border-radius:999px}' +
     '#cloudBar button:disabled{opacity:.6}' +
     '@media (prefers-color-scheme:dark){#cloudBar{border-color:#b87a14}#cloudBar .t{color:#ffcb7a}#cloudBar .s{background:#d98a0a}}' +
     'body.cbar #cloudBar{display:flex}';
