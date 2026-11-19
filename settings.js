@@ -146,6 +146,19 @@
   }
   // 설정을 바꾸면 화면을 새로 불러오지 않고 바로 적용 + 창 내용만 다시 그림(창은 닫히지 않음)
   function applyNow() { window.dispatchEvent(new Event('settingschanged')); build(); }
+  // 지난 달 기록 정리: 이 폰의 데이터에서 고른 달 이전(포함)을 지움. 서버에는 '서버 저장'을 눌러야 반영돼요.
+  function pastMonths() {
+    var all = {}; try { all = JSON.parse(localStorage.getItem('plan-inputs-v4')) || {}; } catch (e) {}
+    var n = new Date(), cur = n.getFullYear() + '-' + ('0' + (n.getMonth() + 1)).slice(-2);
+    return Object.keys(all).filter(function (k) { return /^\d{4}-\d{2}$/.test(k) && k < cur; }).sort();
+  }
+  function purgeHtml() {
+    var pm = pastMonths();
+    if (!pm.length) return '<div class="upd"><b>지난 기록 지우기</b><span class="m">지울 지난 달 기록이 없어요.</span></div>';
+    var o = ''; pm.forEach(function (k, i) { o += '<option value="' + k + '"' + (i === pm.length - 1 ? ' selected' : '') + '>' + k.replace('-', '년 ') + '월 이전(포함)</option>'; });
+    return '<div class="upd"><b>지난 기록 지우기</b><span class="m">고른 달과 그 이전 달의 근무 기록을 이 폰에서 지워요. 서버에도 지우려면 지운 뒤 <b>☁ 서버 저장</b>을 눌러야 해요(저장 전에는 ‘저장 안 한 변경 되돌리기’로 복구할 수 있어요). 저장하면 되돌릴 수 없어요.</span>' +
+      '<select class="exn" id="purgeSel" style="width:100%;margin-bottom:8px">' + o + '</select><button type="button" id="purgeBtn">지난 기록 지우기</button></div>';
+  }
   function build() {
     var bx0 = document.getElementById('setBox'), prevTop = bx0 ? bx0.scrollTop : 0;
     var o = read();
@@ -172,6 +185,7 @@
       (exOnS ? rowEx + rowNo('운동 없는 날') : rowNo('근무시간')) +
       '<small>1·2·3순위 모두 선호하는 시간이에요(여기 없는 시간보다 먼저 써요). 왼쪽일수록 더 선호해요. ' + (exOnS ? '기본값은 운동 있는 날 9·10·7시간, 운동 없는 날 10·11·8시간이에요' : '운동을 꺼 두어서 모든 날에 같은 순위를 써요. 기본값은 10·11·8시간이에요') + '(새로 최대로 채우기를 고른 달부터 적용). 여기서 직접 바꾸면 최대로 채우는 모든 달에 적용돼요.</small></div>';
     h += '<p>바꾸면 바로 적용돼요. 이미 입력한 근무시간은 지워지지 않아요. 설정은 서버에 저장할 때 같이 저장돼요.</p>' +
+      purgeHtml() +
       '<div class="upd"><b>앱 업데이트</b><span class="m" id="updMsg">지금 쓰는 버전 ' + curVer() + '</span>' +
       '<button type="button" id="updBtn">최신 버전 확인하기</button></div>' +
       '<div class="upd"><b>관리자</b><span class="m">사용자 관리와 월별 최소 근무시간을 입력하는 곳이에요. 관리자 비밀번호가 있어야 들어갈 수 있어요.</span>' +
@@ -192,6 +206,21 @@
       });
     });
     document.getElementById('prefSw').addEventListener('click', function () { var cur = read(); if (cur.prefOpen) delete cur.prefOpen; else cur.prefOpen = true; write(cur); build(); });
+    var pb = document.getElementById('purgeBtn');
+    if (pb) {
+      var armT = null;
+      pb.addEventListener('click', function () {
+        var sel = document.getElementById('purgeSel').value, pm = pastMonths().filter(function (k) { return k <= sel; });
+        if (pb.getAttribute('data-arm') !== '1') {   // 첫 번째 누름: 한 번 더 확인
+          pb.setAttribute('data-arm', '1'); pb.textContent = '한 번 더 누르면 ' + pm.length + '개월 기록을 지워요'; pb.style.background = '#c62828'; pb.style.color = '#fff';
+          clearTimeout(armT); armT = setTimeout(function () { build(); }, 6000); return;
+        }
+        var all = {}; try { all = JSON.parse(localStorage.getItem('plan-inputs-v4')) || {}; } catch (e) {}
+        pm.forEach(function (k) { delete all[k]; });
+        try { localStorage.setItem('plan-inputs-v4', JSON.stringify(all)); localStorage.removeItem('undo-stack-v1'); sessionStorage.setItem('restore-view-v1', '1'); } catch (e) {}
+        location.reload();
+      });
+    }
     document.getElementById('admBtn').addEventListener('click', function () { location.href = 'admin.html'; });   // 같은 창에서 열고, 관리자 페이지의 '← 앱으로'로 돌아옴
     Array.prototype.forEach.call(back.querySelectorAll('.sw'), function (b) {
       b.addEventListener('click', function () {

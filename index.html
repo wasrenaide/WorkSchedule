@@ -315,7 +315,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.7.1</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.7.2</small>
     <p class="note"><b>모드</b> 아래의 <b>계획 / 실행 / 계산</b> 버튼을 누르면 바로 그 모드로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -345,9 +345,9 @@ h1{font-size:17px}
     · 합계가 최소보다 적으면 화면 전체가 주황색으로 바뀌어요(이번 달 이후).<br>
     · 제목 옆 52h/64h는 한 번 더 눌러야 바뀌어요. 바꿔도 칸의 값은 그대로이고, 최대 옆 <b>맞추기</b>를 누르면 새 최대에 맞춰요.<br><br>
     <b>아래 버튼</b><br>
-    · <b>↶ 되돌리기</b>: 바꾼 것을 한 단계씩 되돌려요(최근 50번, 앱을 닫아도 남아요).<br>
+    · <b>↶ 되돌리기</b>: 바꾼 것을 한 단계씩 되돌려요(최근 50번, 앱을 닫아도 남아요) 서버에 저장하면 되돌리기 기록은 비워져요. 되돌려서 마지막 저장 상태와 같아지면 ‘저장 안 된 변경’ 알림도 사라져요.<br>
     · <b>☁ 서버 저장/불러오기</b>: 이름과 PIN으로 가입·로그인해서 서버에 저장하고, 다른 폰에서 불러와요. 저장 안 한 변경이 있으면 위쪽 글씨·버튼·아래 카드가 주황색으로 알려줘요. 서버에 더 새 데이터가 있으면 저장이 막히고 고르는 창이 떠요. 관리자는 문제 해결을 위해 저장된 데이터를 볼 수 있어요.<br>
-    · <b>⚙ 설정</b>: 운동·약속 켜고 끄기, 선호 근무시간, 앱 업데이트, 관리자 페이지. 바꾸면 바로 적용돼요.<br>
+    · <b>⚙ 설정</b>: 운동·약속 켜고 끄기, 선호 근무시간, 지난 기록 지우기, 앱 업데이트, 관리자 페이지. 바꾸면 바로 적용돼요.<br>
     · 자동·라이트·다크: 화면 색이에요. 이 폰에만 저장돼요.<br><br>
     <b>선호 근무시간</b> (⚙ 설정)<br>
     · 설정에서 <b>선호 근무시간</b> 스위치를 켜면 순위 칸이 열려요(접어 둬도 값은 적용돼요).<br>
@@ -1299,6 +1299,7 @@ h1{font-size:17px}
     if(ch){undoStack.push({t:Date.now(),v:key(),m:m});if(undoStack.length>UMAX)undoStack.shift();saveUndo()}   // v: 그때 보던 달
     prevMap=nm;
   }
+  window.addEventListener('cloudsaved',function(){undoStack=[];saveUndo();syncPrev();render()});   // 서버에 저장하면 되돌리기 기록을 비움
   function doUndo(){
     if(!undoStack.length){setHint('되돌릴 변경이 없어요.');return}
     var e=undoStack.pop(),first=null;

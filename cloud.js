@@ -95,7 +95,7 @@
     var payload = collect();
     rpc('app_save', { p_name: st.name, p_pin: st.pin, p_data: payload, p_base: st.base || 0, p_force: false }).then(function (r) {
       b.disabled = false; b.textContent = '저장';
-      if (r.ok) { writeSnap(payload); st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); return; }
+      if (r.ok) { writeSnap(payload); st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); savedReset(); return; }
       show('');
       if (r.error === 'conflict') conflict(r.version); else show(errText(r), true);
     });
@@ -127,9 +127,27 @@
       apply(r.data); writeSnap(r.data); st.base = r.version; st.edited = 0; st.atMs = Date.now(); writeSt(); keepView(); location.reload();
     });
   }
+  // 서버에 저장하면 단계별 되돌리기 기록을 비움(앱에 알림)
+  function savedReset() { try { localStorage.removeItem('undo-stack-v1'); } catch (e) {} try { window.dispatchEvent(new Event('cloudsaved')); } catch (e) {} }
+  // 비교용: 키 순서·빈 칸을 무시한 모양으로 바꿈
+  function canon(s) {
+    function prune(v) {
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        var o = {}; Object.keys(v).sort().forEach(function (k) { var p = prune(v[k]); if (p !== undefined) o[k] = p; });
+        return Object.keys(o).length ? o : undefined;
+      }
+      return v;
+    }
+    try { return JSON.stringify(prune(JSON.parse(s))) || ''; } catch (e) { return s || ''; }
+  }
+  function sameAsSnap() {   // 되돌리기 등으로 마지막 저장 상태와 똑같아졌는지
+    var snap = readSnap(); if (!snap) return false;
+    var cur = collect();
+    return canon(cur.inputs) === canon(snap.inputs) && canon(cur.settings) === canon(snap.settings);
+  }
   function isDirty() {
     if (!st.name) return false;
-    if ((st.edited || 0) > (st.atMs || 0)) return true;
+    if ((st.edited || 0) > (st.atMs || 0)) return !sameAsSnap();
     if (!st.atMs && !st.at) { try { return localStorage.getItem(DATA_KEYS.inputs) !== null; } catch (e) { return false; } }
     return false;
   }
@@ -169,7 +187,7 @@
   var quiet = false, origSet = Storage.prototype.setItem;
   Storage.prototype.setItem = function (k) {
     origSet.apply(this, arguments);
-    if (!quiet && this === window.localStorage && (k === DATA_KEYS.inputs || k === DATA_KEYS.settings) && st.name) { st.edited = Date.now(); writeSt(); }
+    if (!quiet && this === window.localStorage && (k === DATA_KEYS.inputs || k === DATA_KEYS.settings) && st.name) { st.edited = Date.now(); writeSt(); setTimeout(function () { try { label(); } catch (e) {} }, 0); }
   };
   label();
   document.getElementById('cloudOpen').addEventListener('click', function () { show(''); });
@@ -246,7 +264,7 @@
     busy(true);
     var payload = collect();
     rpc('app_save', { p_name: st.name, p_pin: st.pin, p_data: payload, p_base: st.base || 0, p_force: !!force }).then(function (r) {
-      if (r.ok) { writeSnap(payload); st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); show('서버에 저장했어요. (버전 ' + r.version + ')'); return; }
+      if (r.ok) { writeSnap(payload); st.base = r.version; st.at = now(); st.atMs = Date.now(); writeSt(); savedReset(); show('서버에 저장했어요. (버전 ' + r.version + ')'); return; }
       if (r.error === 'conflict') { conflict(r.version); return; }
       show(errText(r), true);
     });
