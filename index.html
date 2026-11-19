@@ -337,7 +337,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.9.3</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.9.4</small>
     <p class="note"><b>모드</b> 아래의 <b>계획 / 실행 / 계산</b> 버튼을 누르면 바로 그 모드로 바뀌어요. 달력은 항상 6줄로 보여서(5줄인 달은 아래가 비어요) 달을 넘겨도 아래 메뉴 위치가 그대로예요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -355,6 +355,7 @@ h1{font-size:17px}
     · <b>패밀리데이</b>(21일이 속한 주 금요일): 선택창에서 휴가(연차)로 처리할지 일반 근무일로 둘지 골라요. 고른 값은 기억해요.<br>
     · <b>월 초기화</b>도 같은 선택창이 떠요. 오늘부터 다시 시작하고 지난 날은 그대로예요. 오늘 이후 주말 근무·휴가(연차)·약속·일정(지정한 시간)을 넣어 뒀다면 <b>초기화해도 유지할 것</b>을 체크해서 골라요(기본은 모두 유지, 체크를 끄면 같이 지워져요). <b>이 달 전부 지우기</b>는 지난 날 기록까지 모두 지우고 설정 전 상태로 돌려요(한 번 더 확인해요).<br>· <b>7일 연속 근무</b>가 되면 아래 요약에 ⚠ 경고가 뜨고, 걸린 날짜 칸에 빨간 테두리가 보여요. 지난달에서 이어지거나 다음 달로 이어지는 경우도 알려줘요.<br><br>
     <b>실행</b> 오늘까지의 실제 기록<br>
+    · 실행 모드에서는 <b>일정</b> 버튼이 꺼져 있어요. 휴가·교육·일정·시간연차는 계획 모드에서 바꿔요.<br>
     · 지난 날과 오늘은 눌러서 시·분을 고쳐요. 운동 칸을 누르면 초록으로 반짝이는 ‘운동✓’로 바뀌어요(기록 없는 날도 가능). 실행 모드에서는 운동✓로만 바뀌고, 운동을 빼려면 계획 모드에서 그 칸을 눌러요. 오늘은 시간을 쓰기 전에도 운동 칸을 누를 수 있어요.<br>
     · 요약에 예상 합계와 차이가 나와요. 올림/내림은 쓰지 않아요.<br><br>
     <b>계산</b> 오늘 퇴근 시각 계산<br>
@@ -757,7 +758,7 @@ h1{font-size:17px}
     $('cal').hidden=calcMode;$('dow').hidden=calcMode;$('calcView').hidden=!calcMode;
     document.querySelector('.sum').classList.toggle('run',calcMode);
     $('cap').hidden=calcMode;if(calcMode)$('err').hidden=true;
-    $('leaveMode').disabled=calcMode;
+    $('leaveMode').disabled=calcMode||(FILLUI&&runMode);   // 앱: 실행 모드에서는 일정(휴가·교육·일정·시간연차)을 바꾸지 않음
     $('leaveMode').hidden=$('handMode').hidden=$('dirBtn').hidden=$('resetEdits').hidden=ro();
     if(ro())setSync('보기 전용');else if($('sync').textContent==='보기 전용')setSync('')
     $('dirBtn').textContent=dirDown?'▼ 내림':'▲ 올림';$('dirBtn').setAttribute('aria-pressed',dirDown);$('dirBtn').disabled=calcMode||runMode;   // 실행 모드는 시간을 돌림판으로 입력하므로 올림/내림 의미 없음
@@ -815,8 +816,9 @@ h1{font-size:17px}
       $('stats').innerHTML=
         '<div><dt>'+(minB?'평일 예상':'예상')+'</dt><dd>'+fmtHM(cmpP)+'</dd></div>'+
         '<div'+(minB?(diff<0?' class="over"':diff>0?' class="under"':''):(diff>0?' class="over"':(FILLUI&&diff<0?' class="under"':'')))+'><dt>'+(minB?'필수 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+sg+fmtHM(Math.abs(diff))+'</dd></div>'+
-        (exOn()?'<div class="'+(exN<EX_NEED?'bad':'done')+'"><dt>운동</dt><dd>'+exN+'/'+EX_NEED+(exN>=EX_NEED?' ✓':'')+'</dd></div>':'')+
-        (minB?'<div><dt>추가근무</dt><dd>'+fmtHM(extR)+'</dd></div>':'');
+        (minB?'<div><dt>추가근무</dt><dd>'+fmtHM(extR)+'</dd></div>':'')+
+        (exOn()?'<div class="'+(exN<EX_NEED?'bad':'done')+'"><dt>운동</dt><dd>'+exN+'/'+EX_NEED+(exN>=EX_NEED?' ✓':'')+'</dd></div>':'');
+      $('stats').style.gridTemplateColumns='repeat('+(2+(minB?1:0)+(exOn()?1:0))+',minmax(0,1fr))';   // 칸 수에 맞춰 한 줄로(줄이 늘어 화면 크기가 바뀌지 않게)
       // 계획 모드와 같은 안내: 넘치면 빨강, 모자라면 초록(더 근무 가능)
       if(diff>0)msg='최대보다 '+fmtHM(diff)+' 많아요.';
       else if(diff<0){msg=fmtHM(-diff)+' 더 근무할 수 있어요.';okMsg=true}
@@ -837,8 +839,9 @@ h1{font-size:17px}
       $('stats').innerHTML=
         '<div><dt>'+(minB?'평일 합계':'합계')+'</dt><dd>'+fmtD(cmpT)+'</dd></div>'+
         '<div'+(minB?(pdiff<0?' class="over"':pdiff>0?' class="under"':''):(pdiff>0?' class="over"':pdiff<0?' class="under"':''))+'><dt>'+(minB?'필수 대비':(FILLUI?'최대 대비':'차이'))+'</dt><dd>'+psg+(pdiff===0?'0.0':fmtD(Math.abs(pdiff)))+'</dd></div>'+
-        (exOn()?'<div'+(warnEx?' class="bad"':'')+'><dt>운동</dt><dd>'+exShown+'/'+EX_NEED+'</dd></div>':'')+
-        (minB?'<div><dt>추가근무</dt><dd>'+fmtD(extP)+'</dd></div>':'');
+        (minB?'<div><dt>추가근무</dt><dd>'+fmtD(extP)+'</dd></div>':'')+
+        (exOn()?'<div'+(warnEx?' class="bad"':'')+'><dt>운동</dt><dd>'+exShown+'/'+EX_NEED+'</dd></div>':'');
+      $('stats').style.gridTemplateColumns='';
       // 빨간 글자의 숫자는 위쪽 요약(합계·차이)과 같은 값(tm: 지난 날 실제 기록 반영)으로 계산
       if(r.error&&r.error.indexOf('연속')>=0)msg=r.error;
       else if(r.error||mismatch){
@@ -984,7 +987,7 @@ h1{font-size:17px}
     }
     if(runMode){
       if(id>idOf(new Date())){setHint('앞으로의 날짜는 계획 모드에서 바꿔요.');return}
-      if(code==='leave'){setHint(FILLUI?'휴가 날짜예요. 바꾸려면 일정 버튼을 켜고 눌러요.':'연차 날짜예요. 바꾸려면 연차·교육 버튼을 켜고 눌러요.');return}
+      if(code==='leave'){setHint(FILLUI?'휴가 날짜예요. 바꾸려면 계획 모드에서 일정 버튼을 켜고 눌러요.':'연차 날짜예요. 바꾸려면 연차·교육 버튼을 켜고 눌러요.');return}
       openTime(id);return;
     }
     if(id<idOf(new Date())&&dayMin(c,id)>0&&(handMode||true)){setHint('지난 날은 실행 모드에서 바꿔요.');return}
