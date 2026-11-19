@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#1f5eff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -31,7 +31,7 @@ html,body,button{touch-action:manipulation;-webkit-tap-highlight-color:transpare
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-ui)}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,.wheel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.app{max-width:520px;margin:0 auto;padding-block:8px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{max-width:520px;margin:0 auto;padding-block:8px 24px;padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
 header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .ttl{flex:1;min-width:0;text-align:center}
 .ttl small{display:block;font:400 10px/1.1 var(--font-ui);color:var(--muted)}
@@ -133,6 +133,7 @@ body.lowminb{--bg:#ffefd9}
 #cal.slideL{animation:slideInL .22s ease-out}#cal.slideR{animation:slideInR .22s ease-out}
 #fillBox{position:absolute;left:8px;right:8px;top:34px;bottom:60px;display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
 #fillBox[hidden]{display:none}
+#fillBox[data-pe="1"] span,#fillBox[data-pe="1"] button{display:none}
 .fillcard{pointer-events:auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:0 10px 28px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;max-width:270px}
 .fillcard b{font-size:16px}.fillcard span{font-size:12px;color:var(--muted);line-height:1.5}
 .fillcard button{margin-top:6px;font:inherit;font-size:15px;font-weight:700;padding:11px 22px;border-radius:999px;border:0;background:var(--accent);color:var(--on-accent)}
@@ -199,8 +200,8 @@ h1{font-size:17px}
 .foot{gap:4px;margin-bottom:6px}
 @media (prefers-reduced-motion:no-preference){.cell{transition:transform .08s}.cell:active{transform:scale(.96)}}
 /* ===== 화면 크기에 맞춰 키우기: 칸 높이는 (화면 높이 − 위·아래 영역) ÷ 줄 수, 폰은 최대 76px, 태블릿은 더 크게 ===== */
-:root{--chrome:200px;--cellmax:76px}
-.app{--ch:clamp(46px,calc((100svh - var(--chrome))/var(--rows,5)),var(--cellmax))}
+:root{--chrome:200px;--cellmax:58px}
+.app{--ch:clamp(44px,calc((100svh - var(--chrome))/var(--rows,5)),var(--cellmax))}
 .cell{min-height:var(--ch);container-type:inline-size;--nf:min(calc(var(--ch)*.3 + 3px),50cqw)}
 .cell .tm{font-size:var(--nf)}
 .cell .tm .dp{font-size:calc(var(--nf)*.45)}
@@ -256,6 +257,9 @@ h1{font-size:17px}
 .limbtn:disabled{opacity:1;cursor:default}
 @media (min-width:600px){.todaybtn{min-height:34px;font-size:15px;padding:0 14px}}
 .cell .drow{width:calc(100% - 4px)}
+.cell .main{display:grid;grid-template-rows:auto 1fr;justify-items:center;align-items:center;padding-top:0}
+.cell .main .drow{justify-self:start;align-self:start;margin-top:2px}
+.cell .main.hrs,.cell .main.gry,.cell .main.gry0{}
 .cell .fd{margin-left:auto;color:var(--accent);font-weight:500}   /* 패밀리데이: 날짜 숫자와 같은 크기, 오른쪽 정렬 */
 .calbar{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin:0 0 8px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:13px}
 .calbar b{font-weight:700;white-space:nowrap}
@@ -271,6 +275,8 @@ h1{font-size:17px}
 @media (display-mode:standalone){.app{padding-top:max(calc(env(safe-area-inset-top,0px) + 6px),26px)}}
 /* 표시 안 한 운동/회식·약속 칸은 빈칸(색·글자 없음). 눌러서 켜고 끔 */
 .cell .ex[data-s=off],.warnex .cell:not(.past) .ex[data-s=off]{background:transparent;color:transparent;border-top-color:transparent;font-weight:400}</style>
+<style>html,body{touch-action:manipulation}</style>
+<script>['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})})</script>
 </head>
 <body>
 <main class="app">
@@ -315,7 +321,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.7.2</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.8.0</small>
     <p class="note"><b>모드</b> 아래의 <b>계획 / 실행 / 계산</b> 버튼을 누르면 바로 그 모드로 바뀌어요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -345,9 +351,9 @@ h1{font-size:17px}
     · 합계가 최소보다 적으면 화면 전체가 주황색으로 바뀌어요(이번 달 이후).<br>
     · 제목 옆 52h/64h는 한 번 더 눌러야 바뀌어요. 바꿔도 칸의 값은 그대로이고, 최대 옆 <b>맞추기</b>를 누르면 새 최대에 맞춰요.<br><br>
     <b>아래 버튼</b><br>
-    · <b>↶ 되돌리기</b>: 바꾼 것을 한 단계씩 되돌려요(최근 50번, 앱을 닫아도 남아요) 서버에 저장하면 되돌리기 기록은 비워져요. 되돌려서 마지막 저장 상태와 같아지면 ‘저장 안 된 변경’ 알림도 사라져요.<br>
+    · <b>↶ 되돌리기</b>: 바꾼 것을 한 단계씩 되돌려요(최근 300번, 앱을 닫아도 남아요) 서버에 저장하면 되돌리기 기록은 비워져요. 되돌려서 마지막 저장 상태와 같아지면 ‘저장 안 된 변경’ 알림도 사라져요.<br>
     · <b>☁ 서버 저장/불러오기</b>: 이름과 PIN으로 가입·로그인해서 서버에 저장하고, 다른 폰에서 불러와요. 저장 안 한 변경이 있으면 위쪽 글씨·버튼·아래 카드가 주황색으로 알려줘요. 서버에 더 새 데이터가 있으면 저장이 막히고 고르는 창이 떠요. 관리자는 문제 해결을 위해 저장된 데이터를 볼 수 있어요.<br>
-    · <b>⚙ 설정</b>: 운동·약속 켜고 끄기, 선호 근무시간, 지난 기록 지우기, 앱 업데이트, 관리자 페이지. 바꾸면 바로 적용돼요.<br>
+    · <b>⚙ 설정</b>: 약속·선호 근무시간·운동(목표 횟수)·지난 기록 지우기·앱 업데이트·관리자. 항목 설명은 설정 위쪽 <b>?</b> 버튼을 눌러 봐요. 바꾸면 바로 적용돼요.<br>
     · 자동·라이트·다크: 화면 색이에요. 이 폰에만 저장돼요.<br><br>
     <b>선호 근무시간</b> (⚙ 설정)<br>
     · 설정에서 <b>선호 근무시간</b> 스위치를 켜면 순위 칸이 열려요(접어 둬도 값은 적용돼요).<br>
@@ -820,14 +826,15 @@ h1{font-size:17px}
           inner=dn+splitHtml(x.h*60);
           if(slotOk(d)&&!x.edu){
             var todayRun=runMode&&d.id===todayId;   // 실행 모드의 오늘: 시간 기록 전에도 운동 여부를 입력할 수 있음
-            exbtn=exBtn(todayRun&&c.ax[d.id]!==undefined?exState(c.ax[d.id],false):exState(c.x[d.id],x.ex),d.id,runMode&&!todayRun,(!runMode&&d.id<todayId)||(todayRun&&c.ax[d.id]!==undefined));   // 계획 모드의 지난 날짜: 운동함이면 기록 시간이 없어도 반짝임
+            var axT=d.id<=todayId&&c.ax[d.id]!==undefined;   // 실행 모드에서 직접 입력한 운동 여부(오늘까지): 계획 모드에서도 그대로 보임
+            exbtn=exBtn(axT?exState(c.ax[d.id],false):exState(c.x[d.id],x.ex),d.id,(runMode&&!todayRun)||(!runMode&&axT),(!runMode&&d.id<todayId)||(axT&&c.ax[d.id]===true));   // 계획 모드의 지난 날짜: 운동함이면 기록 시간이 없어도 반짝임
           }
         }else if(!d.we&&r.error&&!HOL[d.id]&&m!=='off'&&m!=='leave'){cls+=' rest';inner=dn+'?'}
         else{cls+=' rest';if(kind)mcls+=' '+kind+'bg';inner=dn+restText}
       }
       var snT=c.sc&&typeof c.sc[d.id]==='string'?c.sc[d.id]:'';
       if(snT&&/^[0-9]+(:[0-9]{2})?$/.test(m||'')&&inner.indexOf('class="tm"')>=0)exbtn='<button type="button" class="ex sn" data-s="sn"'+(ro()?' disabled':' data-sn="'+d.id+'"')+'>'+snT.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</button>';   // 개인 일정: 운동·약속 칸 자리에 글자로 표시
-      if(FILLUI&&runMode&&!exbtn&&(past||isToday)&&exOn()&&exOk(d)&&m!=='leave'&&m!=='edu')exbtn=exBtn(exState(runEx(d.id),false),d.id,false,true);   // 실행 모드: 근무 기록이 없는 날(토요일·휴무 등)도 운동을 체크할 수 있음
+      if(FILLUI&&!exbtn&&(past||isToday)&&exOn()&&exOk(d)&&m!=='leave'&&m!=='edu'&&(runMode||c.ax[d.id]===true))exbtn=exBtn(exState(runEx(d.id),false),d.id,!runMode,true);   // 실행 모드: 근무 기록이 없는 날(토요일·휴무 등)도 운동을 체크할 수 있음
       if(past)cls+=' past';
       if(!exbtn)exbtn=(holSat&&inner.indexOf('class="tm"')>=0)?'<span class="nex hol">휴일</span>':'<span class="nex"></span>';   // 휴일인 토요일에 근무 시간이 있으면 운동 칸 자리에만 빨강 바탕
       h+='<div class="'+cls+'"><button type="button" class="'+mcls+'"'+style+' data-id="'+d.id+'" aria-label="'+(vm+1)+'월 '+d.n+'일">'+inner+'</button>'+exbtn+'</div>';
@@ -1281,7 +1288,7 @@ h1{font-size:17px}
   window.addEventListener('minsupdated',function(){render()});   // cloud.js 가 서버에서 최소 근무시간을 새로 받았을 때
 
   // ===== 앱: 되돌리기(최근 50단계). 저장할 때마다 '바뀐 달의 이전 상태'를 기록하고, 누를 때마다 한 단계씩 뒤로 =====
-  var UK='undo-stack-v1',UMAX=50,undoStack=[],prevMap={};
+  var UK='undo-stack-v1',UMAX=300,undoStack=[],prevMap={};
   function emptyMonth(o){return !o||Object.keys(o).every(function(f){var v=o[f];return v&&typeof v==='object'&&!Array.isArray(v)&&!Object.keys(v).length})}
   function monthMap(){var o={};Object.keys(all).forEach(function(k){if(!emptyMonth(all[k]))o[k]=JSON.stringify(all[k])});return o}
   function syncPrev(){if(FILLUI)prevMap=monthMap()}
@@ -1322,16 +1329,23 @@ h1{font-size:17px}
     var m=all[key()];if(m&&m.fm)return false;
     return key()>=idOf(new Date()).slice(0,7);   // 지난 달은 묻지 않음
   }
+  // 기록이 하나도 없는 지난 달: 설정 전인 미래 달처럼 비워서 보여줌(지운 뒤에도 지난 계획이 다시 계산돼 보이지 않게)
+  function pastEmpty(){
+    if(!FILLUI||calcMode)return false;
+    if(key()>=idOf(new Date()).slice(0,7))return false;
+    var m=all[key()];
+    return !(m&&(m.fm||['d','x','a','ax'].some(function(f){return m[f]&&Object.keys(m[f]).length})));
+  }
   function updateFillBox(){
     if(!FILLUI)return;
-    var need=monthNeedsSetup(),box=$('fillBox');
+    var need=monthNeedsSetup(),pe=pastEmpty(),box=$('fillBox');
     if(!box){
       box=document.createElement('div');box.id='fillBox';
       box.innerHTML='<div class="fillcard"><b>이 달은 아직 설정 전이에요</b><span>평일 8시간으로 시작할지, 월 최대에 맞출지 먼저 정해 주세요.</span><button type="button" id="fillOpen">이 달 설정하기</button></div>';
       $('cal').parentNode.appendChild(box);
       $('fillOpen').addEventListener('click',openFillSheet);
     }
-    box.hidden=!need;$('cal').classList.toggle('fillneed',need);document.body.classList.toggle('fillneedb',need);
+    box.hidden=!(need||pe);box.setAttribute('data-pe',pe?'1':'');box.querySelector('b').textContent=pe?'이 달은 기록이 없어요':'이 달은 아직 설정 전이에요';$('cal').classList.toggle('fillneed',need||pe);document.body.classList.toggle('fillneedb',need||pe);
   }
   // 앱: 토요일 근무를 새로 넣으면 운동도 기본으로 함께 넣음. 목표 횟수를 넘으면 마지막 평일 운동 하나를 뺌. 토요일 근무를 없애면 운동 표시도 같이 없앰
   function autoSatEx(c,id,wasEmpty,hasNow){

@@ -47,6 +47,23 @@
     '#setBox .pref select.r1{border:2px solid var(--accent);font-weight:700}#setBox .pref select.r2{border-color:rgba(31,94,255,.45)}#setBox .pref select.r3{opacity:.85}' +
     '#setBox .pref select{flex:1;min-width:0;font:inherit;font-size:15px;padding:8px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}' +
     '#updPill{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:700}' +
+    '#setBox .it{padding:8px 0}' +
+    '#setBox .top .tb{display:flex;gap:6px;align-items:center}' +
+    '#setBox .top .q{width:34px;height:34px;padding:0;border-radius:50%}#setBox .top .q[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}' +
+    '#setBox .helpbox{margin:0 0 6px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}' +
+    '#setBox .helpbox p{margin:6px 0;font-size:12px;line-height:1.5;color:var(--muted)}#setBox .helpbox p b{color:var(--fg)}' +
+    '#setBox .it .t{min-width:0}#setBox .it small.m{margin-top:1px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '#setBox .it small.m.ok{color:#2e7d32}#setBox .it small.m.bad{color:#c62828}#setBox .it small.m.new{color:var(--accent);font-weight:700}' +
+    '#setBox .mini{flex:none;font:inherit;font-size:14px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}' +
+    '#setBox .mini.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}#setBox .mini:disabled{opacity:.45}' +
+    '#purgeBack{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}' +
+    '#purgeBack .pgbox{width:100%;max-width:520px;max-height:80vh;overflow:auto;background:var(--surface);color:var(--fg);border-radius:16px 16px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box}' +
+    '#purgeBack .pgtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}#purgeBack h2{margin:0;font-size:17px}' +
+    '#purgeBack .pgtop button{font:inherit;font-size:14px;font-weight:700;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}' +
+    '#purgeBack .pglist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}' +
+    '#purgeBack .pg{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:15px}#purgeBack .pg input{width:18px;height:18px}' +
+    '#purgeBack .mini{font:inherit;font-size:15px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}#purgeBack .mini:disabled{opacity:.45}' +
+    '#purgeBack .mini.dng.arm{background:#c62828;border-color:#c62828;color:#fff;font-weight:700}' +
     '#cloudRow{gap:8px;flex-wrap:wrap;row-gap:6px}';
   document.head.appendChild(css);
 
@@ -70,36 +87,36 @@
   function say(t, cls) { var m = document.getElementById('updMsg'); if (m) { m.textContent = t; m.className = 'm ' + (cls || ''); } }
   var latest = null;
   function checkUpdate() {
-    var b = document.getElementById('updBtn'); b.disabled = true; say('확인하는 중…');
+    var b = document.getElementById('updBtn'); b.disabled = true; say('확인 중…');
     fetch('./?c=' + Date.now(), { cache: 'reload' }).then(function (r) { return r.text(); }).then(function (t) {
       var m = t.match(/id="appVer"[^>]*>[^<]*?(\d+\.\d+\.\d+)/);
       if (!m) throw new Error('no version');
       latest = m[1]; b.disabled = false;
       if (newer(latest, curVer())) {
-        say('새 버전이 나왔어요 (' + latest + '). 근무 기록과 설정은 그대로 남아요.', 'new');
-        b.textContent = '지금 갱신하기'; b.className = 'pri';
+        say('새 버전 ' + latest + ' 나왔어요', 'new');
+        b.textContent = '갱신'; b.className = 'mini pri';
         b.onclick = function () { doUpdate(); };
       } else {
-        say('가장 최신 버전이에요 ✓ (' + curVer() + ')', 'ok');
-        b.textContent = '저장 파일 다시 받아 두기'; b.className = '';
+        say('최신이에요 ✓ ' + curVer(), 'ok');
+        b.textContent = '다시 받기'; b.className = 'mini';
         b.onclick = function () { doRefresh(); };
       }
     }).catch(function () {
-      b.disabled = false; say('확인하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.', 'bad');
+      b.disabled = false; say('확인 실패 · 연결 확인', 'bad');
     });
   }
   // 같은 버전: 화면은 그대로 두고(설정 창 유지) 폰에 저장된 파일만 서버 최신본으로 다시 받아 둠. 다음에 앱을 열 때 적용돼요.
   function doRefresh() {
-    var b = document.getElementById('updBtn'); if (b) b.disabled = true; say('다시 받아 두는 중…');
+    var b = document.getElementById('updBtn'); if (b) b.disabled = true; say('받는 중…');
     Promise.all(['./', 'cloud.js', 'settings.js', 'sw.js'].map(function (f) { return fetch(f + '?c=' + Date.now(), { cache: 'reload' }).catch(function () {}); }))
       .then(function () { return navigator.serviceWorker ? navigator.serviceWorker.getRegistrations() : []; })
       .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
       .then(function () { return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : null; })
-      .then(function () { if (b) b.disabled = false; say('최신 파일로 다시 받아 두었어요 ✓ 다음에 앱을 열 때 적용돼요. (지금 쓰는 버전 ' + curVer() + ')', 'ok'); })
-      .catch(function () { if (b) b.disabled = false; say('다시 받지 못했어요. 인터넷 연결을 확인해 주세요.', 'bad'); });
+      .then(function () { if (b) b.disabled = false; say('받아 뒀어요 ✓ 다음 실행 때 적용', 'ok'); })
+      .catch(function () { if (b) b.disabled = false; say('받지 못했어요 · 연결 확인', 'bad'); });
   }
   function doUpdate() {
-    var b = document.getElementById('updBtn'); if (b) b.disabled = true; say('갱신하는 중… 잠시 뒤 앱이 다시 열려요.');
+    var b = document.getElementById('updBtn'); if (b) b.disabled = true; say('갱신 중… 곧 다시 열려요');
     if (b) { try { sessionStorage.setItem('reopen-set-v1', '1'); } catch (e) {} }   // 설정에서 눌렀으면 새로 불러온 뒤 설정 창을 다시 엶
     var files = ['./', 'cloud.js', 'settings.js', 'sw.js'];
     Promise.all(files.map(function (f) { return fetch(f + (f === './' ? '?c=' : '?c=') + Date.now(), { cache: 'reload' }).catch(function () {}); }))   // 브라우저 임시 저장분(10분)을 건너뛰고 새로 받음
@@ -107,7 +124,7 @@
       .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
       .then(function () { return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : null; })
       .then(function () { location.replace(location.pathname + '?v=' + Date.now()); })   // 근무 기록(localStorage)은 건드리지 않음
-      .catch(function () { if (b) b.disabled = false; say('갱신하지 못했어요. 앱을 완전히 종료했다가 다시 열어 주세요.', 'bad'); });
+      .catch(function () { if (b) b.disabled = false; say('갱신 실패 · 앱을 다시 열어 주세요', 'bad'); });
   }
 
   // 새 버전이 있으면 달력 아래 줄에 알림 버튼을 띄움 (30분에 한 번만 확인, 실패하면 조용히 무시)
@@ -131,7 +148,7 @@
     if (!f) return;
     setTimeout(function () {
       if (!back) open();
-      say('다시 불러왔어요 ✓ 지금 쓰는 버전 ' + curVer(), 'ok');
+      say('갱신 완료 ✓ ' + curVer(), 'ok');
       var m = document.getElementById('updMsg'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'center' });
     }, 30);
   })();
@@ -139,6 +156,7 @@
   var back = null;
   function close() { if (back) { back.remove(); back = null; } }
   function open() {
+    helpOn = false;
     back = document.createElement('div'); back.id = 'setBack';
     // 설정 창은 바깥을 눌러도 닫히지 않고, '닫기' 버튼으로만 닫음(실수로 닫히는 것 방지)
     document.body.appendChild(back);
@@ -147,49 +165,81 @@
   // 설정을 바꾸면 화면을 새로 불러오지 않고 바로 적용 + 창 내용만 다시 그림(창은 닫히지 않음)
   function applyNow() { window.dispatchEvent(new Event('settingschanged')); build(); }
   // 지난 달 기록 정리: 이 폰의 데이터에서 고른 달 이전(포함)을 지움. 서버에는 '서버 저장'을 눌러야 반영돼요.
+  // ----- 지난 기록: 기록이 있는 지난 달 목록 -----
   function pastMonths() {
     var all = {}; try { all = JSON.parse(localStorage.getItem('plan-inputs-v4')) || {}; } catch (e) {}
     var n = new Date(), cur = n.getFullYear() + '-' + ('0' + (n.getMonth() + 1)).slice(-2);
-    return Object.keys(all).filter(function (k) { return /^\d{4}-\d{2}$/.test(k) && k < cur; }).sort();
+    return Object.keys(all).filter(function (k) {
+      if (!/^\d{4}-\d{2}$/.test(k) || k >= cur) return false;
+      var m = all[k] || {};
+      return !!m.fm || ['d', 'x', 'a', 'ax'].some(function (f) { return m[f] && Object.keys(m[f]).length; });   // 기록이 하나라도 있는 달만
+    }).sort();
   }
-  function purgeHtml() {
+  function openPurge() {
     var pm = pastMonths();
-    if (!pm.length) return '<div class="upd"><b>지난 기록 지우기</b><span class="m">지울 지난 달 기록이 없어요.</span></div>';
-    var o = ''; pm.forEach(function (k, i) { o += '<option value="' + k + '"' + (i === pm.length - 1 ? ' selected' : '') + '>' + k.replace('-', '년 ') + '월 이전(포함)</option>'; });
-    return '<div class="upd"><b>지난 기록 지우기</b><span class="m">고른 달과 그 이전 달의 근무 기록을 이 폰에서 지워요. 서버에도 지우려면 지운 뒤 <b>☁ 서버 저장</b>을 눌러야 해요(저장 전에는 ‘저장 안 한 변경 되돌리기’로 복구할 수 있어요). 저장하면 되돌릴 수 없어요.</span>' +
-      '<select class="exn" id="purgeSel" style="width:100%;margin-bottom:8px">' + o + '</select><button type="button" id="purgeBtn">지난 기록 지우기</button></div>';
+    var old = document.getElementById('purgeBack'); if (old) old.remove();
+    var e = document.createElement('div'); e.id = 'purgeBack';
+    var rows = pm.map(function (k) { return '<label class="pg"><input type="checkbox" value="' + k + '"><span>' + k.slice(0, 4) + '년 ' + (+k.slice(5)) + '월</span></label>'; }).join('');
+    e.innerHTML = '<div class="pgbox"><div class="pgtop"><h2>지울 달 고르기</h2><button type="button" id="pgX">닫기</button></div>' +
+      (pm.length ? '<div class="pglist">' + rows + '</div><button type="button" id="pgAll" class="mini" style="width:100%;margin:6px 0">전체 선택/해제</button>' +
+        '<button type="button" id="pgGo" class="mini dng" style="width:100%" disabled>지우기</button>' : '<p>지울 지난 달 기록이 없어요.</p>') + '</div>';
+    document.body.appendChild(e);
+    function close2() { e.remove(); }
+    e.addEventListener('click', function (ev) { if (ev.target === e) close2(); });
+    document.getElementById('pgX').addEventListener('click', close2);
+    if (!pm.length) return;
+    var boxes = [].slice.call(e.querySelectorAll('input[type=checkbox]')), go = document.getElementById('pgGo'), armT = null;
+    function sel() { return boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; }); }
+    function refresh() { var n = sel().length; go.disabled = !n; go.textContent = n ? n + '개월 지우기' : '지우기'; go.classList.remove('arm'); go.removeAttribute('data-arm'); }
+    boxes.forEach(function (b) { b.addEventListener('change', refresh); });
+    document.getElementById('pgAll').addEventListener('click', function () { var all = boxes.every(function (b) { return b.checked; }); boxes.forEach(function (b) { b.checked = !all; }); refresh(); });
+    go.addEventListener('click', function () {
+      var ks = sel(); if (!ks.length) return;
+      if (go.getAttribute('data-arm') !== '1') {   // 첫 번째 누름: 한 번 더 확인
+        go.setAttribute('data-arm', '1'); go.classList.add('arm'); go.textContent = '한 번 더 누르면 ' + ks.length + '개월이 지워져요';
+        clearTimeout(armT); armT = setTimeout(refresh, 6000); return;
+      }
+      var all = {}; try { all = JSON.parse(localStorage.getItem('plan-inputs-v4')) || {}; } catch (e2) {}
+      ks.forEach(function (k) { delete all[k]; });
+      try { localStorage.setItem('plan-inputs-v4', JSON.stringify(all)); localStorage.removeItem('undo-stack-v1'); sessionStorage.setItem('restore-view-v1', '1'); } catch (e3) {}
+      location.reload();
+    });
   }
+
+  var helpOn = false;
+  var HELP = [
+    ['약속', '평일 칸에서 눌러 표시해요. 그날은 8시간으로 고정돼요. 끄면 약속 단계가 빠져요.'],
+    ['선호 근무시간', '"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 1순위를 가장 많이 써요. 시간이 많은 날은 월초로 모아요. 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 쓰이지 않고, 이미 정해진 날은 안 바뀌어요. 스위치를 꺼도 정한 값은 그대로 적용돼요.'],
+    ['운동', '끄면 운동 칸과 "운동 n/7" 표시가 사라지고, 운동 횟수 조건 없이 근무시간만 배분해요.'],
+    ['운동 목표 횟수', '한 달에 운동하려는 횟수예요(기본 7번). 토요일 운동도 들어가요. 모자라면 빨갛게 알려줘요.'],
+    ['지난 기록 지우기', '누르면 지울 달을 고르는 창이 떠요. 이 폰에서 지워지고, 서버에도 지우려면 지운 뒤 ☁ 서버 저장을 눌러요. 저장 전에는 "저장 안 한 변경 되돌리기"로 복구할 수 있고, 저장하면 되돌릴 수 없어요. 기록이 없는 지난 달은 빈 달로 보여요.'],
+    ['앱 업데이트', '새 버전이 있는지 확인해요. 갱신해도 근무 기록과 설정은 그대로 남아요.'],
+    ['관리자', '사용자 관리와 월별 최소 근무시간을 입력하는 페이지예요. 관리자 비밀번호가 있어야 들어갈 수 있어요.']
+  ];
+  function swRow(name, k, on_) { return '<div class="it"><div class="t"><b>' + name + '</b></div><button type="button" class="sw' + (on_ ? ' on' : '') + '" data-k="' + k + '" aria-label="' + name + '"></button></div>'; }
   function build() {
     var bx0 = document.getElementById('setBox'), prevTop = bx0 ? bx0.scrollTop : 0;
     var o = read();
-    var h = '<div id="setBox"><div class="top"><h2>설정</h2><button type="button" id="setClose2">닫기</button></div>';
-    ITEMS.forEach(function (it) {
-      var dis = it.needs && !on(o, it.needs);
-      h += '<div class="it' + (dis ? ' dis' : '') + '"><div class="t"><b>' + it.name + '</b><small>' + it.desc + '</small></div>' +
-        '<button type="button" class="sw' + (on(o, it.k) ? ' on' : '') + '" data-k="' + it.k + '" ' + (dis ? 'disabled' : '') + ' aria-label="' + it.name + '"></button></div>';
-    });
-    var exNv = Math.min(12, Math.max(1, parseInt(o.exN, 10) || 7));
-    if (on(o, 'ex')) {   // 운동 목표 횟수(운동을 켠 경우에만)
-      var eo = ''; for (var q = 1; q <= 12; q++) eo += '<option value="' + q + '"' + (q === exNv ? ' selected' : '') + '>' + q + '번</option>';
-      h += '<div class="it"><div class="t"><b>운동 목표 횟수</b><small>한 달에 운동하려는 횟수예요. 기본은 7번이고, 토요일 운동도 이 횟수에 들어가요. 모자라면 빨갛게 알려줘요.</small></div><select class="exn" id="exNsel">' + eo + '</select></div>';
-    }
-    var pf = o.pref || {}, pe = (pf.ex || [9, 10, 7]), pn = (pf.no || [10, 11, 8]), exOnS = on(o, 'ex');
+    var h = '<div id="setBox"><div class="top"><h2>설정</h2><span class="tb"><button type="button" class="q" id="setHelp" aria-pressed="' + helpOn + '" aria-label="설명 보기">?</button><button type="button" id="setClose2">닫기</button></span></div>';
+    if (helpOn) h += '<div class="helpbox">' + HELP.map(function (x) { return '<p><b>' + x[0] + '</b> ' + x[1] + '</p>'; }).join('') + '</div>';
+    h += swRow('약속', 'dine', on(o, 'dine'));
+    // 선호 근무시간: 스위치를 켜면 순위 칸이 열림
+    var pf = o.pref || {}, pe = (pf.ex || [9, 10, 7]), pn = (pf.no || [10, 11, 8]), exOnS = on(o, 'ex'), pOpen = !!o.prefOpen;
+    h += '<div class="it"><div class="t"><b>선호 근무시간</b></div><button type="button" class="sw' + (pOpen ? ' on' : '') + '" id="prefSw" aria-label="선호 근무시간 설정 열기"></button></div>';
     function opts(sel, lo, hi, none) { var s = none ? '<option value="">없음</option>' : ''; for (var v = lo; v <= hi; v++) s += '<option value="' + v + '"' + (+sel === v ? ' selected' : '') + '>' + v + '시간</option>'; return s; }
     var head = '<div class="pr hd"><span></span><em class="r1">1순위<i>가장 선호</i></em><em class="r2">2순위<i>다음 선호</i></em><em class="r3">3순위<i>그다음 선호</i></em></div>';
     var rowNo = function (label) { return '<div class="pr"><span>' + label + '</span><select class="r1" data-p="no0">' + opts(pn[0], 5, 13, false) + '</select><select class="r2" data-p="no1">' + opts(pn[1], 5, 13, true) + '</select><select class="r3" data-p="no2">' + opts(pn[2], 5, 13, true) + '</select></div>'; };
     var rowEx = '<div class="pr"><span>운동 있는 날</span><select class="r1" data-p="ex0">' + opts(pe[0], 5, 12, false) + '</select><select class="r2" data-p="ex1">' + opts(pe[1], 5, 12, true) + '</select><select class="r3" data-p="ex2">' + opts(pe[2], 5, 12, true) + '</select></div>';
-    var pOpen = !!o.prefOpen;   // 선호 근무시간 설정 칸을 펼칠지(기본은 접힘, 값은 접어도 그대로 유지·적용)
-    h += '<div class="it"><div class="t"><b>선호 근무시간</b><small>최대로 채울 때 쓸 근무시간 순위예요. 켜면 설정 칸이 열려요. 접어 둬도 정한 값은 그대로 적용돼요.</small></div>' +
-      '<button type="button" class="sw' + (pOpen ? ' on' : '') + '" id="prefSw" aria-label="선호 근무시간 설정 열기"></button></div>';
-    if (pOpen) h += '<div class="pref"><b>선호 근무시간</b><small>"최대로 채우기"로 시작한 달에서, 월 최대 시간에 딱 맞는 조합 중 <b>1순위를 가장 많이</b> 써요. 시간이 많은 날은 월초로 모으고 적은 날은 말일 쪽에 둬요(예: 앞쪽 11시간, 뒤쪽 10시간). 맞는 조합이 없으면 기존 방식으로 맞춰요. 최소로 시작한 달은 평일 8시간이라 쓰이지 않아요. 이미 정해진 날은 바뀌지 않아요.</small>' + head +
-      (exOnS ? rowEx + rowNo('운동 없는 날') : rowNo('근무시간')) +
-      '<small>1·2·3순위 모두 선호하는 시간이에요(여기 없는 시간보다 먼저 써요). 왼쪽일수록 더 선호해요. ' + (exOnS ? '기본값은 운동 있는 날 9·10·7시간, 운동 없는 날 10·11·8시간이에요' : '운동을 꺼 두어서 모든 날에 같은 순위를 써요. 기본값은 10·11·8시간이에요') + '(새로 최대로 채우기를 고른 달부터 적용). 여기서 직접 바꾸면 최대로 채우는 모든 달에 적용돼요.</small></div>';
-    h += '<p>바꾸면 바로 적용돼요. 이미 입력한 근무시간은 지워지지 않아요. 설정은 서버에 저장할 때 같이 저장돼요.</p>' +
-      purgeHtml() +
-      '<div class="upd"><b>앱 업데이트</b><span class="m" id="updMsg">지금 쓰는 버전 ' + curVer() + '</span>' +
-      '<button type="button" id="updBtn">최신 버전 확인하기</button></div>' +
-      '<div class="upd"><b>관리자</b><span class="m">사용자 관리와 월별 최소 근무시간을 입력하는 곳이에요. 관리자 비밀번호가 있어야 들어갈 수 있어요.</span>' +
-      '<button type="button" id="admBtn">관리자 페이지 열기</button></div>' +
+    if (pOpen) h += '<div class="pref">' + head + (exOnS ? rowEx + rowNo('운동 없는 날') : rowNo('근무시간')) + '</div>';
+    // 운동, 운동 목표 횟수(운동을 켠 경우에만)
+    h += swRow('운동', 'ex', exOnS);
+    if (exOnS) {
+      var exNv = Math.min(12, Math.max(1, parseInt(o.exN, 10) || 7)), eo = ''; for (var q = 1; q <= 12; q++) eo += '<option value="' + q + '"' + (q === exNv ? ' selected' : '') + '>' + q + '번</option>';
+      h += '<div class="it"><div class="t"><b>운동 목표 횟수</b></div><select class="exn" id="exNsel">' + eo + '</select></div>';
+    }
+    h += '<div class="it"><div class="t"><b>지난 기록 지우기</b></div><button type="button" class="mini" id="purgeOpen"' + (pastMonths().length ? '' : ' disabled') + '>' + (pastMonths().length ? '달 선택' : '없음') + '</button></div>' +
+      '<div class="it"><div class="t"><b>앱 업데이트</b><small class="m" id="updMsg">현재 ' + curVer() + '</small></div><button type="button" class="mini" id="updBtn">확인</button></div>' +
+      '<div class="it"><div class="t"><b>관리자</b></div><button type="button" class="mini" id="admBtn">페이지 열기</button></div>' +
       '<button type="button" class="close" id="setClose">닫기</button></div>';
     back.innerHTML = h;
     var bx1 = document.getElementById('setBox'); if (bx1) bx1.scrollTop = prevTop;
@@ -197,7 +247,9 @@
     if (exs) exs.addEventListener('change', function () { var cur = read(), v = +exs.value; if (v === 7) delete cur.exN; else cur.exN = v; write(cur); applyNow(); });
     document.getElementById('setClose').addEventListener('click', close);
     document.getElementById('setClose2').addEventListener('click', close);   // 맨 위 닫기(스크롤해도 위에 붙어 있음)
+    document.getElementById('setHelp').addEventListener('click', function () { helpOn = !helpOn; build(); });
     document.getElementById('updBtn').addEventListener('click', checkUpdate);
+    document.getElementById('purgeOpen').addEventListener('click', openPurge);
     Array.prototype.forEach.call(back.querySelectorAll('.pref select'), function (sl) {
       sl.addEventListener('change', function () {
         var g = function (k) { var e = back.querySelector('select[data-p="' + k + '"]'); return e && e.value ? +e.value : null; };
@@ -206,23 +258,8 @@
       });
     });
     document.getElementById('prefSw').addEventListener('click', function () { var cur = read(); if (cur.prefOpen) delete cur.prefOpen; else cur.prefOpen = true; write(cur); build(); });
-    var pb = document.getElementById('purgeBtn');
-    if (pb) {
-      var armT = null;
-      pb.addEventListener('click', function () {
-        var sel = document.getElementById('purgeSel').value, pm = pastMonths().filter(function (k) { return k <= sel; });
-        if (pb.getAttribute('data-arm') !== '1') {   // 첫 번째 누름: 한 번 더 확인
-          pb.setAttribute('data-arm', '1'); pb.textContent = '한 번 더 누르면 ' + pm.length + '개월 기록을 지워요'; pb.style.background = '#c62828'; pb.style.color = '#fff';
-          clearTimeout(armT); armT = setTimeout(function () { build(); }, 6000); return;
-        }
-        var all = {}; try { all = JSON.parse(localStorage.getItem('plan-inputs-v4')) || {}; } catch (e) {}
-        pm.forEach(function (k) { delete all[k]; });
-        try { localStorage.setItem('plan-inputs-v4', JSON.stringify(all)); localStorage.removeItem('undo-stack-v1'); sessionStorage.setItem('restore-view-v1', '1'); } catch (e) {}
-        location.reload();
-      });
-    }
     document.getElementById('admBtn').addEventListener('click', function () { location.href = 'admin.html'; });   // 같은 창에서 열고, 관리자 페이지의 '← 앱으로'로 돌아옴
-    Array.prototype.forEach.call(back.querySelectorAll('.sw'), function (b) {
+    Array.prototype.forEach.call(back.querySelectorAll('.sw[data-k]'), function (b) {
       b.addEventListener('click', function () {
         var cur = read(), k = b.getAttribute('data-k');
         if (on(cur, k)) cur[k] = false; else if (k === 'ex') cur[k] = true; else delete cur[k];
