@@ -154,7 +154,7 @@
     return false;
   }
   function label() { var d = isDirty(), o = document.getElementById('cloudOpen');
-    o.textContent = st.name ? (d ? '● 저장 필요 · ☁ ' : '☁ ') + st.name + ' · 저장/불러오기' : '☁ 서버 저장/불러오기';
+    o.textContent = st.name ? (d ? '● 저장 필요 · ☁ ' + st.name : '☁ ' + st.name + ' · 저장/불러오기') : '☁ 서버 저장/불러오기';   // 저장 필요일 때는 짧게(줄이 바뀌어 화면이 흔들리지 않게)
     o.className = d ? 'dirty' : '';
     paintName(); }
 
@@ -174,7 +174,7 @@
     var d = isDirty();
     syncEl.textContent = mine; syncEl.hidden = false; syncEl.className = d ? 'cdirty' : '';
     var o = document.getElementById('cloudOpen');
-    if (o && st.name) { o.className = d ? 'dirty' : ''; o.textContent = (d ? '● 저장 필요 · ☁ ' : '☁ ') + st.name + ' · 저장/불러오기'; }
+    if (o && st.name) { o.className = d ? 'dirty' : ''; o.textContent = d ? '● 저장 필요 · ☁ ' + st.name : '☁ ' + st.name + ' · 저장/불러오기'; }
     document.body.classList.toggle('cbar', d);
     var u = document.getElementById('cloudBarUndo'); if (u) u.style.display = canUndo() ? '' : 'none';
     setTimeout(function () { painting = false; }, 0);

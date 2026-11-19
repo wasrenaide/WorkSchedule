@@ -66,7 +66,7 @@
     '#purgeBack .pg{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:15px}#purgeBack .pg input{width:18px;height:18px}' +
     '#purgeBack .mini{font:inherit;font-size:15px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}#purgeBack .mini:disabled{opacity:.45}' +
     '#purgeBack .mini.dng.arm{background:#c62828;border-color:#c62828;color:#fff;font-weight:700}' +
-    '#cloudRow{gap:8px;flex-wrap:wrap;row-gap:6px}';
+    '#cloudRow{gap:8px;flex-wrap:nowrap;align-items:center}#cloudOpen{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#setOpen,#updPill{flex:none;white-space:nowrap}';   // 한 줄 고정(글자가 길어져도 줄이 늘지 않게)
   document.head.appendChild(css);
 
   var row = document.getElementById('cloudRow');
