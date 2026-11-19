@@ -10,7 +10,7 @@
 
   function read() { try { var o = JSON.parse(localStorage.getItem(KEY)); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
   function write(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
-  function on(o, k) { return o[k] !== false; }
+  function on(o, k) { return k === 'ex' ? o[k] === true : o[k] !== false; }   // 운동은 기본 꺼짐(켜야 true), 나머지는 기본 켜짐
 
   var css = document.createElement('style');
   css.textContent =
@@ -196,7 +196,7 @@
     Array.prototype.forEach.call(back.querySelectorAll('.sw'), function (b) {
       b.addEventListener('click', function () {
         var cur = read(), k = b.getAttribute('data-k');
-        if (on(cur, k)) cur[k] = false; else delete cur[k];
+        if (on(cur, k)) cur[k] = false; else if (k === 'ex') cur[k] = true; else delete cur[k];
         write(cur);
         applyNow();
       });
