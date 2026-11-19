@@ -334,7 +334,7 @@ h1{font-size:17px}
     <button class="ghost" id="themeBtn" type="button">라이트</button>
   </div>
   <section class="card" id="helpBox" hidden>
-    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.8.3</small>
+    <small id="appVer" style="display:block;margin-bottom:6px;color:var(--muted)">버전 0.8.4</small>
     <p class="note"><b>모드</b> 아래의 <b>계획 / 실행 / 계산</b> 버튼을 누르면 바로 그 모드로 바뀌어요. 달력은 항상 6줄로 보여서(5줄인 달은 아래가 비어요) 달을 넘겨도 아래 메뉴 위치가 그대로예요.<br>· 달 이동: 제목 양옆 ‹ › 버튼, 또는 달력을 <b>왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달</b>로 넘어가요.<br><br>
     <b>계획</b> 앞으로의 근무 짜기<br>
     · 날짜를 누르면 근무시간이 바뀌어요(평일 7~13시간).<br>
@@ -365,7 +365,7 @@ h1{font-size:17px}
     · 제목 옆 52h/64h는 한 번 더 눌러야 바뀌어요. 바꿔도 칸의 값은 그대로이고, 최대 옆 <b>맞추기</b>를 누르면 새 최대에 맞춰요.<br><br>
     <b>아래 버튼</b><br>
     · <b>↶ 되돌리기</b>: 바꾼 것을 한 단계씩 되돌려요(최근 300번, 앱을 닫아도 남아요) 서버에 저장하면 되돌리기 기록은 비워져요. 되돌려서 마지막 저장 상태와 같아지면 ‘저장 안 된 변경’ 알림도 사라져요.<br>
-    · <b>☁ 서버 저장/불러오기</b>: 이름과 PIN으로 가입·로그인해서 서버에 저장하고, 다른 폰에서 불러와요. 저장 안 한 변경이 있으면 위쪽 글씨·버튼·아래 카드가 주황색으로 알려줘요. 서버에 더 새 데이터가 있으면 저장이 막히고 고르는 창이 떠요. 관리자는 문제 해결을 위해 저장된 데이터를 볼 수 있어요.<br>
+    · <b>☁ 서버 저장/불러오기</b>: 이름과 PIN으로 가입·로그인해서 서버에 저장하고, 다른 폰에서 불러와요. 저장 안 한 변경이 있으면 달력 맨 아래 오른쪽 빈 칸에 ‘저장 안 된 변경’ 카드(되돌리기·저장)가 뜨고, 위쪽 글씨·아래 버튼도 주황색으로 알려줘요. 서버에 더 새 데이터가 있으면 저장이 막히고 고르는 창이 떠요. 관리자는 문제 해결을 위해 저장된 데이터를 볼 수 있어요.<br>
     · <b>⚙ 설정</b>: 약속·선호 근무시간·운동(목표 횟수)·지난 기록 지우기·앱 업데이트·관리자. 항목 이름 옆 <b>?</b>를 누르면 그 항목 설명이 떠요(아무 데나 누르면 닫혀요). 바꾸면 바로 적용돼요.<br>
     · 자동·라이트·다크: 화면 색이에요. 이 폰에만 저장돼요.<br><br>
     <b>선호 근무시간</b> (⚙ 설정)<br>
@@ -694,7 +694,16 @@ h1{font-size:17px}
   function FILLUI_EARLY(){return window.__fillUI===true}
   // 앱: 달력은 항상 6줄. 화면 높이에서 달력 밖 영역(위·아래 메뉴)을 뺀 만큼을 6줄로 나눠 칸 높이를 정함 → 달이 달라도 아래 메뉴 위치가 고정되고 맨 아래 설정까지 한 화면에 들어옴
   var fitBusy=false;
-  function fitCells(){
+  // 저장 안 된 변경 알림: 달력 마지막(6번째) 줄 오른쪽 5칸은 어떤 달이어도 비어 있으니(1일이 토요일이고 31일이어도 37칸까지만 씀) 그 자리에 올려서 칸 크기가 안 바뀌게 함
+  function placeBar(){
+    var bar=$('cloudBar'),cal=$('cal');if(!bar||!FILLUI||!cal)return;
+    if(calcMode||cal.hidden||!cal.offsetHeight){bar.style.visibility='hidden';return}
+    var gap=parseFloat(getComputedStyle(cal).columnGap)||2,cw=(cal.clientWidth-6*gap)/7,chv=(cal.offsetHeight-5*gap)/6;
+    bar.style.left=(cal.offsetLeft+2*(cw+gap))+'px';bar.style.top=(cal.offsetTop+5*(chv+gap))+'px';
+    bar.style.width=(5*cw+4*gap)+'px';bar.style.height=chv+'px';bar.style.visibility='visible';
+  }
+  function fitCells(){fitCells0();placeBar()}
+  function fitCells0(){
     if(!FILLUI||calcMode||fitBusy)return;
     var app=document.querySelector('.app'),cal=$('cal');if(!app||!cal||cal.hidden||!cal.offsetHeight)return;
     fitBusy=true;
